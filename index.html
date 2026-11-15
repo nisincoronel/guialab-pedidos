@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07512f"><meta name="description" content="Simulador educativo de lectura e interpretación de pedidos de laboratorio.">
+  <title>GuiaLab Pedidos</title><link rel="manifest" href="manifest.json"><link rel="icon" href="assets/logo-guialab.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="GuiaLab Pedidos inicio"><img src="assets/logo-guialab.png" alt="GuiaLab"><span><b>GuiaLab</b><small> PEDIDOS</small></span></a>
+      <nav aria-label="Navegación principal"><button class="nav-btn active" data-view="inicio">Inicio</button><button class="nav-btn" data-view="simulador">Simulador</button><button class="nav-btn" data-view="biblioteca">Biblioteca</button></nav>
+      <span class="status"><i></i> Prototipo 0.1</span>
+    </header>
+
+    <main>
+      <section id="view-inicio" class="view active">
+        <div class="hero">
+          <div class="hero-copy"><p class="eyebrow">ENTRENAMIENTO PREANALÍTICO</p><h1>Aprendé a leer<br><em>pedidos de laboratorio.</em></h1><p>Practicá el reconocimiento de determinaciones, la clasificación por áreas y el análisis operativo de solicitudes mediante casos educativos.</p><div class="hero-actions"><button class="btn primary" data-go="simulador">Comenzar a practicar <span>→</span></button><button class="btn secondary" data-go="biblioteca">Explorar biblioteca</button></div></div>
+          <div class="hero-art"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="paper"><div class="paper-head"><span>ORDEN DE LABORATORIO</span><b>GL · SIMULADO</b></div><div class="paper-line short"></div><div class="paper-line"></div><div class="paper-line mid"></div><div class="paper-gap"></div><div class="paper-line"></div><div class="paper-line short"></div><div class="paper-line mid"></div><div class="paper-stamp">CASO<br>FICTICIO</div></div><div class="floating-chip"><span>✓</span> Practicá sin riesgo</div></div>
+        </div>
+        <div class="section-head"><div><p class="eyebrow">TU ESPACIO DE PRÁCTICA</p><h2>¿Por dónde empezamos?</h2></div><span class="muted">Elegí una actividad</span></div>
+        <div class="feature-grid">
+          <button class="feature-card" data-go="simulador"><span class="feature-icon green">▤</span><b>Simulador de pedidos</b><small>Analizá una solicitud ficticia y resolvé consignas.</small><span class="card-link">Resolver caso <b>→</b></span></button>
+          <button class="feature-card" data-go="biblioteca"><span class="feature-icon mint">⌕</span><b>Biblioteca técnica</b><small>Buscá determinaciones, áreas y datos de muestra disponibles.</small><span class="card-link">Consultar datos <b>→</b></span></button>
+          <div class="feature-card static"><span class="feature-icon lime">◎</span><b>Tu progreso</b><small id="progress-copy">Todavía no completaste ejercicios en este dispositivo.</small><div class="progress-track"><span id="progress-bar"></span></div><span class="card-link"><span id="progress-count">0 casos completados</span></span></div>
+        </div>
+        <div class="notice"><span>i</span><p><b>Entorno educativo.</b> Los casos de esta versión son ficticios. La herramienta no habilita a modificar solicitudes, prescribir estudios ni reemplazar los procedimientos del laboratorio.</p></div>
+      </section>
+
+      <section id="view-simulador" class="view">
+        <div class="page-title"><div><p class="eyebrow">SIMULADOR · CASO 001</p><h1>Lectura de un pedido</h1><p>Identificá qué se solicita y cómo se organiza la información.</p></div><span class="level">NIVEL INTERMEDIO</span></div>
+        <div class="sim-layout">
+          <article class="request-card"><div class="request-top"><div><small>DOCUMENTO EDUCATIVO</small><h2>Solicitud de análisis</h2></div><span class="fake-stamp">SIMULADO</span></div><div class="request-meta"><div><small>Paciente ficticio</small><b>Alex R.</b></div><div><small>Fecha</small><b>15/11/2026</b></div><div><small>Solicitud</small><b>GLP-001</b></div></div><div class="request-divider"></div><p class="request-label">DETERMINACIONES SOLICITADAS</p><ul class="test-list"><li>Hemograma completo</li><li>Glucemia</li><li>Urea</li><li>Creatinina</li><li>Colesterol total</li><li>Triglicéridos</li><li>TSH</li></ul><div class="request-foot">Documento ficticio creado exclusivamente para entrenamiento.</div></article>
+          <article class="exercise-card"><div class="step-row"><span class="step-dot">1</span><span>RECONOCIMIENTO</span><span class="step-spacer"></span><span class="question-count">1 de 3</span></div><h2>Analizá la solicitud</h2><p class="question">¿Cuántas determinaciones diferentes aparecen en el pedido?</p><div class="choice-list" id="count-choices"><label><input type="radio" name="count" value="5"><span>5 determinaciones</span></label><label><input type="radio" name="count" value="6"><span>6 determinaciones</span></label><label><input type="radio" name="count" value="7"><span>7 determinaciones</span></label><label><input type="radio" name="count" value="8"><span>8 determinaciones</span></label></div>
+            <div class="question-block"><div class="step-row"><span class="step-dot">2</span><span>CLASIFICACIÓN</span></div><p class="question">¿Qué áreas del laboratorio están representadas?</p><div class="check-list" id="area-choices"><label><input type="checkbox" value="Hematología"><span>Hematología</span></label><label><input type="checkbox" value="Química clínica"><span>Química clínica</span></label><label><input type="checkbox" value="Endocrinología"><span>Endocrinología</span></label><label><input type="checkbox" value="Microbiología"><span>Microbiología</span></label><label><input type="checkbox" value="Hemostasia"><span>Hemostasia</span></label></div></div>
+            <div class="question-block"><div class="step-row"><span class="step-dot">3</span><span>CRITERIO OPERATIVO</span></div><p class="question">Si una abreviatura del pedido no es clara, ¿qué corresponde hacer?</p><select id="ambiguity-answer"><option value="">Seleccioná una respuesta</option><option value="guess">Interpretarla por contexto y continuar.</option><option value="consult">Solicitar aclaración por el circuito establecido antes de actuar.</option><option value="omit">Omitirla sin dejar registro.</option></select></div>
+            <button class="btn primary full" id="correct-btn">Corregir ejercicio <span>→</span></button><div id="feedback" class="feedback" aria-live="polite" hidden></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="view-biblioteca" class="view">
+        <div class="page-title"><div><p class="eyebrow">BASE DE CONSULTA</p><h1>Biblioteca de determinaciones</h1><p>Explorá el catálogo incorporado desde la base de GuiaLab.</p></div><span class="count-pill" id="catalog-count">Cargando…</span></div>
+        <div class="search-panel"><div class="searchbox"><span>⌕</span><input id="search" type="search" placeholder="Buscar determinación, sinónimo o muestra…" autocomplete="off"></div><select id="area-filter"><option value="">Todas las áreas</option></select></div>
+        <div id="catalog-status" class="muted status-line">Cargando catálogo…</div><div id="catalog-results" class="catalog-list"></div>
+      </section>
+    </main>
+    <footer><span>GuiaLab Pedidos · Prototipo independiente</span><span>Una herramienta educativa del ecosistema GuiaLab</span></footer>
+  </div>
+  <script src="app.js"></script>
+  <script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
+</body></html>
