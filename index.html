@@ -1,55 +1,93 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#07512f"><meta name="description" content="Simulador educativo de lectura e interpretación de pedidos de laboratorio.">
-  <title>GuiaLab Pedidos</title><link rel="manifest" href="manifest.json"><link rel="icon" href="assets/logo-guialab.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07512f"><meta name="description" content="Plataforma educativa para practicar lectura de pedidos de laboratorio.">
+<title>GuiaLab Pedidos | Formación</title>
+<link rel="icon" href="./assets/logo-mark.png"><link rel="manifest" href="./manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <a class="brand" href="#inicio" aria-label="GuiaLab Pedidos inicio"><img src="assets/logo-guialab.png" alt="GuiaLab"><span><b>GuiaLab</b><small> PEDIDOS</small></span></a>
-      <nav aria-label="Navegación principal"><button class="nav-btn active" data-view="inicio">Inicio</button><button class="nav-btn" data-view="simulador">Simulador</button><button class="nav-btn" data-view="biblioteca">Biblioteca</button></nav>
-      <span class="status"><i></i> Prototipo 0.1</span>
-    </header>
+<div class="shell">
+<header class="topbar">
+ <a class="brand" href="#inicio"><img src="./assets/logo-mark.png" alt=""><span><b>GuiaLab</b><small>PEDIDOS · FORMACIÓN</small></span></a>
+ <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><button class="nav" data-view="catalogo">Determinaciones</button><button class="nav" data-view="docente">Panel docente</button></nav>
+ <span class="version">VERSIÓN 0.4</span>
+</header>
+<main>
+<section id="view-inicio" class="view active">
+ <div class="hero">
+  <div><p class="eyebrow">ENTRENAMIENTO PREANALÍTICO</p><h1>Aprendé a leer<br><em>pedidos de laboratorio.</em></h1>
+  <p>Practicá con fotografías de pedidos, reconocé determinaciones y desarrollá criterio para identificar cuándo corresponde consultar.</p>
+  <div class="actions"><button class="btn primary" data-go="biblioteca">Ir a la biblioteca →</button><button class="btn secondary" data-go="catalogo">Consultar determinaciones</button></div></div>
+  <div class="hero-visual"><div class="orb"></div><div class="paper"><b>ORDEN DE LABORATORIO</b><small>CASO EDUCATIVO</small><i></i><i></i><i></i><i></i><i></i><span>SIMULADO</span></div><div class="chip">✓ Practicá con criterio</div></div>
+ </div>
+ <div class="section-title"><div><p class="eyebrow">PLATAFORMA DE PRÁCTICA</p><h2>Un espacio para entrenar</h2></div></div>
+ <div class="tiles">
+  <article><span class="tile-icon">01</span><h3>Pedidos fotográficos</h3><p>Interpretá pedidos manuscritos e impresos incorporados por el docente.</p></article>
+  <article><span class="tile-icon">02</span><h3>Lectura crítica</h3><p>Reconocé abreviaturas, ambigüedades e información que requiere confirmación.</p></article>
+  <article><span class="tile-icon">03</span><h3>Biblioteca técnica</h3><p>Consultá el catálogo de determinaciones de GuiaLab como material de referencia.</p></article>
+ </div>
+ <div class="notice"><b>Importante:</b> entorno educativo. Los pedidos publicados deben estar autorizados y completamente anonimizados. No se deben cargar datos identificatorios ni información clínica personal.</div>
+</section>
 
-    <main>
-      <section id="view-inicio" class="view active">
-        <div class="hero">
-          <div class="hero-copy"><p class="eyebrow">ENTRENAMIENTO PREANALÍTICO</p><h1>Aprendé a leer<br><em>pedidos de laboratorio.</em></h1><p>Practicá el reconocimiento de determinaciones, la clasificación por áreas y el análisis operativo de solicitudes mediante casos educativos.</p><div class="hero-actions"><button class="btn primary" data-go="simulador">Comenzar a practicar <span>→</span></button><button class="btn secondary" data-go="biblioteca">Explorar biblioteca</button></div></div>
-          <div class="hero-art"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="paper"><div class="paper-head"><span>ORDEN DE LABORATORIO</span><b>GL · SIMULADO</b></div><div class="paper-line short"></div><div class="paper-line"></div><div class="paper-line mid"></div><div class="paper-gap"></div><div class="paper-line"></div><div class="paper-line short"></div><div class="paper-line mid"></div><div class="paper-stamp">CASO<br>FICTICIO</div></div><div class="floating-chip"><span>✓</span> Practicá sin riesgo</div></div>
-        </div>
-        <div class="section-head"><div><p class="eyebrow">TU ESPACIO DE PRÁCTICA</p><h2>¿Por dónde empezamos?</h2></div><span class="muted">Elegí una actividad</span></div>
-        <div class="feature-grid">
-          <button class="feature-card" data-go="simulador"><span class="feature-icon green">▤</span><b>Simulador de pedidos</b><small>Analizá una solicitud ficticia y resolvé consignas.</small><span class="card-link">Resolver caso <b>→</b></span></button>
-          <button class="feature-card" data-go="biblioteca"><span class="feature-icon mint">⌕</span><b>Biblioteca técnica</b><small>Buscá determinaciones, áreas y datos de muestra disponibles.</small><span class="card-link">Consultar datos <b>→</b></span></button>
-          <div class="feature-card static"><span class="feature-icon lime">◎</span><b>Tu progreso</b><small id="progress-copy">Todavía no completaste ejercicios en este dispositivo.</small><div class="progress-track"><span id="progress-bar"></span></div><span class="card-link"><span id="progress-count">0 casos completados</span></span></div>
-        </div>
-        <div class="notice"><span>i</span><p><b>Entorno educativo.</b> Los casos de esta versión son ficticios. La herramienta no habilita a modificar solicitudes, prescribir estudios ni reemplazar los procedimientos del laboratorio.</p></div>
-      </section>
+<section id="view-biblioteca" class="view">
+ <div class="page-title"><div><p class="eyebrow">BANCO COMÚN DE EJERCICIOS</p><h1>Biblioteca de pedidos</h1><p>Elegí un caso publicado por el docente para comenzar a practicar.</p></div><span id="case-count" class="pill">Cargando…</span></div>
+ <div class="filters"><input id="case-search" type="search" placeholder="Buscar por título, área o habilidad…"><select id="difficulty-filter"><option value="">Todas las dificultades</option><option>Inicial</option><option>Intermedio</option><option>Avanzado</option></select></div>
+ <div id="case-grid" class="case-grid"><p class="muted">Conectando con la biblioteca…</p></div>
+</section>
 
-      <section id="view-simulador" class="view">
-        <div class="page-title"><div><p class="eyebrow">SIMULADOR · CASO 001</p><h1>Lectura de un pedido</h1><p>Identificá qué se solicita y cómo se organiza la información.</p></div><span class="level">NIVEL INTERMEDIO</span></div>
-        <div class="sim-layout">
-          <article class="request-card"><div class="request-top"><div><small>DOCUMENTO EDUCATIVO</small><h2>Solicitud de análisis</h2></div><span class="fake-stamp">SIMULADO</span></div><div class="request-meta"><div><small>Paciente ficticio</small><b>Alex R.</b></div><div><small>Fecha</small><b>15/11/2026</b></div><div><small>Solicitud</small><b>GLP-001</b></div></div><div class="request-divider"></div><p class="request-label">DETERMINACIONES SOLICITADAS</p><ul class="test-list"><li>Hemograma completo</li><li>Glucemia</li><li>Urea</li><li>Creatinina</li><li>Colesterol total</li><li>Triglicéridos</li><li>TSH</li></ul><div class="request-foot">Documento ficticio creado exclusivamente para entrenamiento.</div></article>
-          <article class="exercise-card"><div class="step-row"><span class="step-dot">1</span><span>RECONOCIMIENTO</span><span class="step-spacer"></span><span class="question-count">1 de 3</span></div><h2>Analizá la solicitud</h2><p class="question">¿Cuántas determinaciones diferentes aparecen en el pedido?</p><div class="choice-list" id="count-choices"><label><input type="radio" name="count" value="5"><span>5 determinaciones</span></label><label><input type="radio" name="count" value="6"><span>6 determinaciones</span></label><label><input type="radio" name="count" value="7"><span>7 determinaciones</span></label><label><input type="radio" name="count" value="8"><span>8 determinaciones</span></label></div>
-            <div class="question-block"><div class="step-row"><span class="step-dot">2</span><span>CLASIFICACIÓN</span></div><p class="question">¿Qué áreas del laboratorio están representadas?</p><div class="check-list" id="area-choices"><label><input type="checkbox" value="Hematología"><span>Hematología</span></label><label><input type="checkbox" value="Química clínica"><span>Química clínica</span></label><label><input type="checkbox" value="Endocrinología"><span>Endocrinología</span></label><label><input type="checkbox" value="Microbiología"><span>Microbiología</span></label><label><input type="checkbox" value="Hemostasia"><span>Hemostasia</span></label></div></div>
-            <div class="question-block"><div class="step-row"><span class="step-dot">3</span><span>CRITERIO OPERATIVO</span></div><p class="question">Si una abreviatura del pedido no es clara, ¿qué corresponde hacer?</p><select id="ambiguity-answer"><option value="">Seleccioná una respuesta</option><option value="guess">Interpretarla por contexto y continuar.</option><option value="consult">Solicitar aclaración por el circuito establecido antes de actuar.</option><option value="omit">Omitirla sin dejar registro.</option></select></div>
-            <button class="btn primary full" id="correct-btn">Corregir ejercicio <span>→</span></button><div id="feedback" class="feedback" aria-live="polite" hidden></div>
-          </article>
-        </div>
-      </section>
+<section id="view-practica" class="view">
+ <button class="back" data-go="biblioteca">← Volver a la biblioteca</button>
+ <div class="page-title"><div><p class="eyebrow">EJERCICIO FOTOGRÁFICO</p><h1 id="practice-title">Caso</h1><p id="practice-meta"></p></div><span class="pill">Práctica</span></div>
+ <div class="practice-layout">
+  <article class="image-panel"><div class="panel-label">PEDIDO PARA INTERPRETAR</div><img id="practice-image" alt="Pedido de laboratorio anonimizado"><p id="practice-caption" class="muted"></p></article>
+  <article class="answer-panel"><h2>Resolución del caso</h2><p id="practice-prompt" class="muted"></p><label for="student-answer">Escribí las determinaciones que reconocés y cómo resolverías las dudas.</label><textarea id="student-answer" rows="8" placeholder="Escribí tu interpretación…"></textarea><p class="hint">Incluí nombres, abreviaturas o términos reconocidos. Si algo no es legible, indicá que requiere confirmación.</p><button id="evaluate" class="btn primary full">Enviar respuesta y corregir</button><div id="evaluation-result" class="result" hidden></div></article>
+ </div>
+</section>
 
-      <section id="view-biblioteca" class="view">
-        <div class="page-title"><div><p class="eyebrow">BASE DE CONSULTA</p><h1>Biblioteca de determinaciones</h1><p>Explorá el catálogo incorporado desde la base de GuiaLab.</p></div><span class="count-pill" id="catalog-count">Cargando…</span></div>
-        <div class="search-panel"><div class="searchbox"><span>⌕</span><input id="search" type="search" placeholder="Buscar determinación, sinónimo o muestra…" autocomplete="off"></div><select id="area-filter"><option value="">Todas las áreas</option></select></div>
-        <div id="catalog-status" class="muted status-line">Cargando catálogo…</div><div id="catalog-results" class="catalog-list"></div>
-      </section>
-    </main>
-    <footer><span>GuiaLab Pedidos · Prototipo independiente</span><span>Una herramienta educativa del ecosistema GuiaLab</span></footer>
+<section id="view-catalogo" class="view">
+ <div class="page-title"><div><p class="eyebrow">BASE DE CONSULTA</p><h1>Determinaciones</h1><p>Catálogo importado del proyecto GuiaLab original.</p></div><span id="catalog-count" class="pill">—</span></div>
+ <div class="filters"><input id="catalog-search" type="search" placeholder="Buscar determinación, sinónimo, muestra…"><select id="catalog-area"><option value="">Todas las áreas</option></select></div>
+ <div id="catalog-results" class="catalog-list"></div>
+</section>
+
+<section id="view-docente" class="view">
+ <div class="page-title"><div><p class="eyebrow">ADMINISTRACIÓN RESTRINGIDA</p><h1>Panel docente</h1><p>Gestioná los pedidos que estarán disponibles para todos los alumnos.</p></div><span id="admin-status" class="pill">No autenticado</span></div>
+ <div id="admin-login" class="login-card">
+  <h2>Acceso docente</h2><p class="muted">Ingresá con la cuenta autorizada en Supabase.</p>
+  <label>Correo electrónico<input id="admin-email" type="email" autocomplete="username" placeholder="docente@ejemplo.com"></label>
+  <label>Contraseña<input id="admin-password" type="password" autocomplete="current-password" placeholder="Contraseña"></label>
+  <button id="login-button" class="btn primary">Ingresar</button><p id="login-message" class="message"></p>
+ </div>
+ <div id="admin-workspace" hidden>
+  <div class="admin-toolbar"><div><h2>Biblioteca docente</h2><p class="muted">Los borradores no son visibles para los alumnos.</p></div><button id="logout-button" class="btn secondary">Cerrar sesión</button></div>
+  <div class="admin-layout">
+   <form id="case-form" class="form-card">
+    <h3>Agregar un pedido</h3>
+    <label>Fotografía del pedido (JPG, PNG o WebP)<input id="case-image" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+    <div class="privacy-warning">Antes de cargar: verificá autorización y anonimización completa. No subas nombres, DNI, fechas de nacimiento, números de historia clínica, códigos de barras ni otros identificadores.</div>
+    <label>Título del caso<input id="case-title" maxlength="100" required placeholder="Ej. Pedido manuscrito de rutina"></label>
+    <div class="two-col"><label>Dificultad<select id="case-difficulty"><option>Inicial</option><option selected>Intermedio</option><option>Avanzado</option></select></label><label>Formato<select id="case-format"><option>Manuscrito</option><option>Impreso</option><option>Mixto</option></select></label></div>
+    <label>Área(s) separadas por coma<input id="case-areas" placeholder="Hematología, Química clínica"></label>
+    <label>Habilidades separadas por coma<input id="case-skills" placeholder="Reconocimiento, Preanalítica, Lectura crítica"></label>
+    <label>Consigna para el alumno<textarea id="case-prompt" rows="3" required placeholder="¿Qué debe resolver el alumno?"></textarea></label>
+    <label>Transcripción docente (opcional)<textarea id="case-transcription" rows="3" placeholder="Transcripción revisada por el docente…"></textarea></label>
+    <label>Palabras o determinaciones esperadas<textarea id="case-terms" rows="3" required placeholder="Hemograma, glucemia, urea…"></textarea><small>Separá cada respuesta esperada con coma. La corrección busca coincidencias de texto sin distinguir mayúsculas ni tildes.</small></label>
+    <label>Explicación y devolución<textarea id="case-explanation" rows="4" required placeholder="Explicá la resolución y los criterios que debe aprender el alumno."></textarea></label>
+    <label class="checkline"><input id="case-publish" type="checkbox"> Publicar inmediatamente en la biblioteca de alumnos</label>
+    <button class="btn primary full" id="save-case" type="submit">Guardar pedido</button><p id="save-message" class="message"></p>
+   </form>
+   <aside class="form-card"><h3>Casos cargados</h3><p class="muted">Administrá la visibilidad de los pedidos existentes.</p><div id="admin-case-list" class="admin-list"><p class="muted">Iniciá sesión para ver los casos.</p></div></aside>
   </div>
-  <script src="app.js"></script>
-  <script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
+ </div>
+</section>
+</main>
+<footer><span>GuiaLab Pedidos · Versión 0.4</span><span>Una herramienta educativa del ecosistema GuiaLab</span></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script><script src="./app.js"></script>
+<script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
 </body></html>
