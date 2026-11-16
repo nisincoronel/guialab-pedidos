@@ -126,22 +126,9 @@ $("#case-form").addEventListener("submit",async e=>{
  button.disabled=false;button.textContent="Guardar pedido";
 });
 async function loadCatalog(){
- const target=$("#catalog-results");
- try{
-  const response=await fetch("./determinaciones.json",{cache:"no-store"});
-  if(!response.ok)throw new Error(`No se encontró determinaciones.json (HTTP ${response.status}).`);
-  const parsed=await response.json();
-  if(!Array.isArray(parsed))throw new Error("El archivo del catálogo no contiene una lista válida.");
-  catalog=parsed;
-  $("#catalog-count").textContent=catalog.length.toLocaleString("es-AR")+" registros";
-  const areas=[...new Set(catalog.map(x=>x.Grupo||x.Sector).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"es"));
-  $("#catalog-area").innerHTML='<option value="">Todas las áreas</option>'+areas.map(a=>`<option value="${escapeHTML(a)}">${escapeHTML(a)}</option>`).join("");
-  renderCatalog();
- }catch(error){
-  console.error("Error al cargar el catálogo de determinaciones:",error);
-  $("#catalog-count").textContent="No disponible";
-  target.innerHTML=`<div class="empty">No se pudo cargar el catálogo. ${escapeHTML(error.message)} Verificá que determinaciones.json esté en la raíz del repositorio.</div>`;
- }
+ try{const r=await fetch("./determinaciones.json");catalog=await r.json();$("#catalog-count").textContent=catalog.length+" registros";
+ const areas=[...new Set(catalog.map(x=>x.Grupo||x.Sector).filter(Boolean))].sort();$("#catalog-area").innerHTML='<option value="">Todas las áreas</option>'+areas.map(a=>`<option>${escapeHTML(a)}</option>`).join("");renderCatalog()}
+ catch(e){$("#catalog-results").textContent="No se pudo cargar el catálogo. Verificá que determinaciones.json esté en la raíz del sitio."}
 }
 function renderCatalog(){
  const term=norm($("#catalog-search").value),area=$("#catalog-area").value;
