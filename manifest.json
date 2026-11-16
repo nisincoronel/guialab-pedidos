@@ -1,0 +1,19 @@
+{
+  "name": "GuiaLab Pedidos · Formación",
+  "short_name": "GuiaLab Pedidos",
+  "description": "Entrenamiento educativo con pedidos anonimizados.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f0",
+  "theme_color": "#07512f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./assets/logo-guialab.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
