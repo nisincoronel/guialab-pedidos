@@ -1,7 +1,7 @@
 {
-  "name": "GuiaLab Pedidos · Formación",
+  "name": "GuiaLab Pedidos",
   "short_name": "GuiaLab Pedidos",
-  "description": "Entrenamiento educativo con pedidos anonimizados.",
+  "description": "Herramienta educativa abierta para practicar la lectura y resolución de pedidos de laboratorio.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "./logo-guialab.png",
+      "src": "./assets/logo-guialab.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

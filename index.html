@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#07512f"><meta name="description" content="Plataforma educativa para practicar lectura de pedidos de laboratorio.">
 <title>GuiaLab Pedidos | Formación</title>
-<link rel="icon" href="./logo-mark.png"><link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./assets/logo-mark.png"><link rel="manifest" href="./manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./styles.css">
@@ -12,23 +12,23 @@
 <body>
 <div class="shell">
 <header class="topbar">
- <a class="brand" href="#inicio" aria-label="GuiaLab Formación y Capacitación Continua"><img src="./logo-guialab-formacion.png" alt="GuiaLab Formación y Capacitación Continua"></a>
- <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><button class="nav" data-view="catalogo">Determinaciones</button><button class="nav" data-view="docente">Panel docente</button></nav>
- <span class="version">VERSIÓN 0.8</span>
+ <a class="brand" href="#inicio"><img src="./assets/logo-formacion.png" alt="GuiaLab Formación y Capacitación Continua"><span><b>GuiaLab</b><small>PEDIDOS · ESPACIO GUÍA</small></span></a>
+ <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><a class="nav external-nav" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a><button class="nav" data-view="docente">Panel docente</button></nav>
+ <span class="version">VERSIÓN 1.0</span>
 </header>
 <main>
 <section id="view-inicio" class="view active">
  <div class="hero">
   <div><p class="eyebrow">ENTRENAMIENTO PREANALÍTICO</p><h1>Aprendé a leer<br><em>pedidos de laboratorio.</em></h1>
   <p>Practicá con fotografías de pedidos, reconocé determinaciones y desarrollá criterio para identificar cuándo corresponde consultar.</p>
-  <div class="actions"><button class="btn primary" data-go="biblioteca">Ir a la biblioteca →</button><button class="btn secondary" data-go="catalogo">Consultar determinaciones</button></div></div>
-  <div class="hero-visual"><div class="orb"></div><div class="paper"><img class="paper-brand" src="./logo-guialab-formacion.png" alt="GuiaLab Formación y Capacitación Continua"><b>ORDEN DE LABORATORIO</b><small>CASO EDUCATIVO</small><i></i><i></i><i></i><i></i><i></i><span>SIMULADO</span></div><div class="chip">✓ Practicá con criterio</div></div>
+  <div class="actions"><button class="btn primary" data-go="biblioteca">Ir a la biblioteca →</button><a class="btn secondary" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a></div></div>
+  <div class="hero-visual"><div class="orb"></div><div class="paper"><b>ORDEN DE LABORATORIO</b><small>CASO EDUCATIVO</small><i></i><i></i><i></i><i></i><i></i><span>SIMULADO</span></div><div class="chip">✓ Practicá con criterio</div></div>
  </div>
  <div class="section-title"><div><p class="eyebrow">PLATAFORMA DE PRÁCTICA</p><h2>Un espacio para entrenar</h2></div></div>
  <div class="tiles">
   <article><span class="tile-icon">01</span><h3>Pedidos fotográficos</h3><p>Interpretá pedidos manuscritos e impresos incorporados por el docente.</p></article>
   <article><span class="tile-icon">02</span><h3>Lectura crítica</h3><p>Reconocé abreviaturas, ambigüedades e información que requiere confirmación.</p></article>
-  <article><span class="tile-icon">03</span><h3>Biblioteca técnica</h3><p>Consultá el catálogo de determinaciones de GuiaLab como material de referencia.</p></article>
+  <article><span class="tile-icon">03</span><h3>Consulta técnica</h3><p>Consultá GuiaLab en otra pestaña mientras resolvés el pedido.</p></article>
  </div>
  <div class="notice"><b>Importante:</b> entorno educativo. Los pedidos publicados deben estar autorizados y completamente anonimizados. No se deben cargar datos identificatorios ni información clínica personal.</div>
 </section>
@@ -44,15 +44,25 @@
  <div class="page-title"><div><p class="eyebrow">EJERCICIO FOTOGRÁFICO</p><h1 id="practice-title">Caso</h1><p id="practice-meta"></p></div><span class="pill">Práctica</span></div>
  <div class="practice-layout">
   <article class="image-panel"><div class="panel-label">PEDIDO PARA INTERPRETAR</div><img id="practice-image" alt="Pedido de laboratorio anonimizado"><p id="practice-caption" class="muted"></p></article>
-  <article class="answer-panel"><h2>Resolución del caso</h2><p id="practice-prompt" class="muted"></p><label for="student-answer">Escribí las determinaciones que reconocés y cómo resolverías las dudas.</label><textarea id="student-answer" rows="8" placeholder="Escribí tu interpretación…"></textarea><p class="hint">Incluí nombres, abreviaturas o términos reconocidos. Si algo no es legible, indicá que requiere confirmación.</p><button id="evaluate" class="btn primary full">Enviar respuesta y corregir</button><div id="evaluation-result" class="result" hidden></div></article>
+  <article class="answer-panel interactive-answer">
+   <h2>Resolución del pedido</h2><p id="practice-prompt" class="muted"></p>
+   <div class="exercise-intro"><b>Completá una fila por cada determinación.</b><span>Podés consultar GuiaLab en otra pestaña durante todo el ejercicio. La información de muestra y recipiente debe verificarse según el método y el procedimiento del laboratorio.</span><a class="btn secondary" href="https://guialab.net.ar/" target="_blank" rel="noopener">Abrir GuiaLab para consultar ↗</a></div>
+   <div class="worksheet-head"><span>Determinación</span><span>Área</span><span>Muestra</span><span>Tubo / aditivo</span></div>
+   <div id="determination-rows"></div>
+   <button id="add-determination" type="button" class="btn secondary full">＋ Agregar determinación</button>
+   <div class="worksheet-extra">
+    <h3>Requisitos preanalíticos</h3>
+    <label for="student-fasting">Ayuno / preparación indicada</label><textarea id="student-fasting" rows="2" placeholder="Indicá si requiere ayuno u otra preparación, o si debe verificarse…"></textarea>
+    <label for="student-special">Condiciones especiales</label><textarea id="student-special" rows="2" placeholder="Horario, medicación, conservación u otras condiciones…"></textarea>
+    <label for="student-observations">Dudas, inconsistencias o consultas necesarias</label><textarea id="student-observations" rows="3" placeholder="¿Hay algo ilegible, contradictorio o que debas confirmar?"></textarea>
+   </div>
+   <p class="hint">La corrección automática de esta versión reconoce las determinaciones esperadas mediante el motor actual. Los campos de área, muestra, tubo y requisitos preanalíticos quedan registrados en tu respuesta para su revisión; todavía no reciben puntuación independiente.</p>
+   <button id="evaluate" class="btn primary full">Enviar resolución y corregir</button><div id="evaluation-result" class="result" hidden></div>
+  </article>
  </div>
 </section>
 
-<section id="view-catalogo" class="view">
- <div class="page-title"><div><p class="eyebrow">BASE DE CONSULTA</p><h1>Determinaciones</h1><p>Catálogo importado del proyecto GuiaLab original.</p></div><span id="catalog-count" class="pill">—</span></div>
- <div class="filters"><input id="catalog-search" type="search" placeholder="Buscar determinación, sinónimo, muestra…"><select id="catalog-area"><option value="">Todas las áreas</option></select></div>
- <div id="catalog-results" class="catalog-list"></div>
-</section>
+
 
 <section id="view-docente" class="view">
  <div class="page-title"><div><p class="eyebrow">ADMINISTRACIÓN RESTRINGIDA</p><h1>Panel docente</h1><p>Gestioná los pedidos que estarán disponibles para todos los alumnos.</p></div><span id="admin-status" class="pill">No autenticado</span></div>
@@ -85,10 +95,7 @@
  </div>
 </section>
 </main>
-<footer>
- <div class="footer-product"><strong>GuiaLab Pedidos · Versión 0.8</strong><span>Una herramienta educativa del ecosistema Espacio Guía</span></div>
- <div class="footer-author"><span>Desarrollado por:</span><strong>Nisin Coronel</strong><span>Técnico Superior en Lab. Químico Biológico</span><strong>Posadas, Misiones | 2026</strong></div>
-</footer>
+<footer><span>GuiaLab Pedidos · Versión 1.0</span><span>Una herramienta educativa del ecosistema Espacio Guía<br><b>Desarrollado por: Nisin Coronel</b> · Técnico Superior en Lab. Químico Biológico<br><b>Posadas, Misiones | 2026</b></span></footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./config.js"></script><script src="./app.js"></script>

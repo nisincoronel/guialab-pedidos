@@ -1,7 +1,7 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const cfg=window.GLP_CONFIG||{};
 const configured=cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY&&!cfg.SUPABASE_URL.includes("TU-PROYECTO");
-let sb=null,admin=false,currentCase=null,catalog=[];
+let sb=null,admin=false,currentCase=null;
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 function go(v){$$(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v));$$(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));window.scrollTo({top:0,behavior:"smooth"});if(v==="biblioteca")loadCases();if(v==="docente")refreshAdmin();}
 $$(".nav").forEach(b=>b.addEventListener("click",()=>go(b.dataset.view)));
@@ -20,7 +20,8 @@ async function loadCases(){
  if(error){$("#case-grid").innerHTML='<div class="empty">No se pudo cargar la biblioteca. Revisá la configuración y las políticas de Supabase.</div>';return}
  const rows=(data||[]).filter(c=>!search||norm([c.title,c.description,(c.areas||[]).join(" "),(c.skills||[]).join(" ")].join(" ")).includes(search));
  $("#case-count").textContent=`${rows.length} ${rows.length===1?"caso":"casos"}`;
- $("#case-grid").innerHTML=rows.length?rows.map(c=>`<article class="case-card"><img src="${escapeHTML(imageURL(c.image_path))}" alt="Pedido anonimizado"><div class="case-body"><span class="tag">${escapeHTML(c.difficulty)}</span><span class="tag">${escapeHTML(c.format)}</span><h3>${escapeHTML(c.title)}</h3><p>${escapeHTML(c.description||c.prompt||"Ejercicio de lectura de pedidos.")}</p><div>${(c.areas||[]).slice(0,3).map(x=>`<span class="tag">${escapeHTML(x)}</span>`).join("")}</div><button class="btn primary" data-open-case="${c.id}">Practicar →</button></div></article>`).join(""):'<div class="empty">Todavía no hay pedidos publicados. Volvé más adelante.</div>';
+ $("#case-grid").innerHTML=rows.length?rows.map(c=>`<article class="case-card"><img data-case-image="${escapeHTML(c.id)}" alt="Pedido anonimizado"><div class="case-body"><span class="tag">${escapeHTML(c.difficulty)}</span><span class="tag">${escapeHTML(c.format)}</span><h3>${escapeHTML(c.title)}</h3><p>${escapeHTML(c.description||c.prompt||"Ejercicio de lectura de pedidos.")}</p><div>${(c.areas||[]).slice(0,3).map(x=>`<span class="tag">${escapeHTML(x)}</span>`).join("")}</div><button class="btn primary" data-open-case="${c.id}">Practicar →</button></div></article>`).join(""):'<div class="empty">Todavía no hay pedidos publicados. Volvé más adelante.</div>';
+ for(const c of rows){const img=$(`[data-case-image="${c.id}"]`);if(img)img.src=await imageURL(c.image_path)}
  $$("[data-open-case]").forEach(b=>b.addEventListener("click",()=>openCase(b.dataset.openCase)));
 }
 async function imageURL(path){
@@ -29,24 +30,66 @@ async function imageURL(path){
  if(error){console.error("No se pudo generar el enlace temporal de la imagen:",error);return ""}
  return data.signedUrl;
 }
+
+function addDeterminationRow(prefill={}){
+ const host=$("#determination-rows");
+ const n=host.children.length+1;
+ const row=document.createElement("div");
+ row.className="determination-row";
+ row.innerHTML=`<div class="row-number">${n}</div>
+ <label class="sr-only">Determinación</label><input class="row-test" list="determination-options" placeholder="Ej. Hemograma" value="${escapeHTML(prefill.test||"")}">
+ <label class="sr-only">Área</label><input class="row-area" placeholder="Área" value="${escapeHTML(prefill.area||"")}">
+ <label class="sr-only">Muestra</label><input class="row-sample" placeholder="Muestra" value="${escapeHTML(prefill.sample||"")}">
+ <label class="sr-only">Tubo / aditivo</label><input class="row-tube" placeholder="Tubo / aditivo" value="${escapeHTML(prefill.tube||"")}">
+ <button type="button" class="remove-row" aria-label="Quitar determinación" title="Quitar fila">×</button>`;
+ host.appendChild(row);
+ row.querySelector(".remove-row").addEventListener("click",()=>{row.remove();renumberRows()});
+ 
+}
+function renumberRows(){[...$("#determination-rows").children].forEach((r,i)=>r.querySelector(".row-number").textContent=i+1)}
+function getWorksheetText(){
+ const rows=[...$("#determination-rows").children].map((r,i)=>({
+  determinacion:r.querySelector(".row-test").value.trim(),
+  area:r.querySelector(".row-area").value.trim(),
+  muestra:r.querySelector(".row-sample").value.trim(),
+  tubo:r.querySelector(".row-tube").value.trim()
+ })).filter(r=>r.determinacion||r.area||r.muestra||r.tubo);
+ return [
+  "DETERMINACIONES:",
+  ...rows.map((r,i)=>`${i+1}. ${r.determinacion}; Área: ${r.area}; Muestra: ${r.muestra}; Tubo/aditivo: ${r.tubo}`),
+  "AYUNO / PREPARACIÓN: "+$("#student-fasting").value.trim(),
+  "CONDICIONES ESPECIALES: "+$("#student-special").value.trim(),
+  "DUDAS / INCONSISTENCIAS / CONSULTAS: "+$("#student-observations").value.trim()
+ ].join("\n");
+}
+function initWorksheet(){
+ $("#determination-rows").innerHTML="";
+ addDeterminationRow();addDeterminationRow();addDeterminationRow();
+ $("#student-fasting").value="";$("#student-special").value="";$("#student-observations").value="";
+ $("#evaluation-result").hidden=true;
+}
+$("#add-determination").addEventListener("click",()=>addDeterminationRow());
+
 async function openCase(id){
  if(!requireBackend())return;
  const {data,error}=await sb.from("glp_cases").select("*").eq("id",id).eq("status","published").single();
  if(error||!data){alert("No se pudo abrir el caso.");return}
  currentCase=data;$("#practice-title").textContent=data.title;$("#practice-meta").textContent=`${data.code} · ${data.difficulty} · ${data.format} · ${(data.areas||[]).join(", ")}`;
  $("#practice-image").src=await imageURL(data.image_path);$("#practice-caption").textContent=data.transcription?"Transcripción docente disponible después de resolver el ejercicio.":"Observá el documento completo antes de responder.";
- $("#practice-prompt").textContent=data.prompt;$("#student-answer").value="";$("#evaluation-result").hidden=true;go("practica");
+ $("#practice-prompt").textContent=data.prompt;initWorksheet();go("practica");
 }
 $("#evaluate").addEventListener("click",async()=>{
  if(!currentCase||!requireBackend())return;
- const answer=$("#student-answer").value.trim();if(answer.length<3){alert("Escribí tu interpretación antes de corregir.");return}
+ const answer=getWorksheetText();const filled=[...$("#determination-rows").children].filter(r=>r.querySelector(".row-test").value.trim());
+ if(!filled.length){alert("Agregá al menos una determinación antes de enviar.");return}
+ if(answer.trim().length<3){alert("Completá tu resolución antes de corregir.");return}
  $("#evaluate").disabled=true;$("#evaluate").textContent="Corrigiendo…";
  const {data,error}=await sb.rpc("glp_evaluate_case",{p_case_id:currentCase.id,p_answer:answer});
  $("#evaluate").disabled=false;$("#evaluate").textContent="Enviar respuesta y corregir";
  const box=$("#evaluation-result");box.hidden=false;
  if(error){box.className="result bad";box.textContent="No se pudo corregir la respuesta. "+error.message;return}
  box.className="result"+(data.score<60?" bad":"");
- box.innerHTML=`<b>Resultado: ${data.score}%</b><br>Coincidencias: ${data.matched.length?data.matched.map(escapeHTML).join(", "):"No se reconocieron coincidencias."}<br>${data.missing.length?"Para revisar: "+data.missing.map(escapeHTML).join(", ")+"<br>":""}<br><b>Devolución docente</b><br>${escapeHTML(data.explanation||"Revisá la resolución del caso.")}${data.transcription?`<br><br><b>Transcripción docente</b><br>${escapeHTML(data.transcription)}`:""}`;
+ box.innerHTML=`<b>Reconocimiento de determinaciones: ${data.score}%</b><br>Coincidencias: ${data.matched.length?data.matched.map(escapeHTML).join(", "):"No se reconocieron coincidencias."}<br>${data.missing.length?"Para revisar: "+data.missing.map(escapeHTML).join(", ")+"<br>":""}<br><b>Devolución docente</b><br>${escapeHTML(data.explanation||"Revisá la resolución del caso.")}${data.transcription?`<br><br><b>Transcripción docente</b><br>${escapeHTML(data.transcription)}`:""}<br><br><small>La puntuación automática de esta versión corresponde al reconocimiento de las determinaciones esperadas. Los campos de área, muestra, tubo y fase preanalítica se muestran para autoevaluación y todavía no tienen corrección automática independiente.</small>`;
 });
 $("#case-search").addEventListener("input",loadCases);$("#difficulty-filter").addEventListener("change",loadCases);
 async function refreshAdmin(){
@@ -125,16 +168,5 @@ $("#case-form").addEventListener("submit",async e=>{
  }
  button.disabled=false;button.textContent="Guardar pedido";
 });
-async function loadCatalog(){
- try{const r=await fetch("./determinaciones.json");catalog=await r.json();$("#catalog-count").textContent=catalog.length+" registros";
- const areas=[...new Set(catalog.map(x=>x.Grupo||x.Sector).filter(Boolean))].sort();$("#catalog-area").innerHTML='<option value="">Todas las áreas</option>'+areas.map(a=>`<option>${escapeHTML(a)}</option>`).join("");renderCatalog()}
- catch(e){$("#catalog-results").textContent="No se pudo cargar el catálogo. Verificá que determinaciones.json esté en la raíz del sitio."}
-}
-function renderCatalog(){
- const term=norm($("#catalog-search").value),area=$("#catalog-area").value;
- const rows=catalog.filter(x=>(!area||(x.Grupo||x.Sector)===area)&&(!term||norm(Object.values(x).join(" ")).includes(term))).slice(0,100);
- $("#catalog-results").innerHTML=rows.map(x=>`<article class="catalog-row"><b>${escapeHTML(x.Determinación)}</b><p>${escapeHTML(x.Grupo||x.Sector||"Área no especificada")} · Muestra: ${escapeHTML(x.Muestra||"No consignada")} · Tubo: ${escapeHTML(x.Tubo||"No consignado")} · Ayuno: ${escapeHTML(x.Ayuno||"Consultar ficha")}</p></article>`).join("")||'<div class="empty">No se encontraron determinaciones.</div>';
-}
-$("#catalog-search").addEventListener("input",renderCatalog);$("#catalog-area").addEventListener("change",renderCatalog);
 if(sb)sb.auth.onAuthStateChange(()=>refreshAdmin());
-loadCatalog();refreshAdmin();
+refreshAdmin();
