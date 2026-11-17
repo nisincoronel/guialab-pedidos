@@ -107,20 +107,44 @@ async function refreshAccount(){
  $('#profile-level').textContent=({free:'Cuenta gratuita',student:'Alumno habilitado',teacher:'Docente',institution:'Colaborador institucional',admin:'Administrador'})[profile?.access_level||'free'];
  await loadStudentExams();
 }
-$('#register-form').addEventListener('submit',async e=>{
- e.preventDefault();if(!requireBackend())return;
+async function registerAccount(){
+ if(!requireBackend())return;
+ const button=$('#register-submit');
  const name=$('#reg-name').value.trim(),email=$('#reg-email').value.trim(),password=$('#reg-password').value;
- if(name.length<3){msg('#register-message','Ingresá tu nombre y apellido.');return}
- msg('#register-message','Creando cuenta…');
- const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name}}});
- if(error){msg('#register-message',error.message);return}
- if(data.user){
-  const {error:pe}=await sb.from('glp_profiles').upsert({user_id:data.user.id,display_name:name,email,access_level:'free'},{onConflict:'user_id'});
-  if(pe)console.warn('El perfil se completará al iniciar sesión:',pe.message);
- }
- msg('#register-message',data.session?'Cuenta creada. Ya podés ingresar.':'Cuenta creada. Revisá tu correo para confirmar el registro y luego iniciá sesión.');
-});
-$('#signin-form').addEventListener('submit',async e=>{e.preventDefault();if(!requireBackend())return;msg('#signin-message','Ingresando…');const {error}=await sb.auth.signInWithPassword({email:$('#signin-email').value.trim(),password:$('#signin-password').value});msg('#signin-message',error?error.message:'Sesión iniciada.');if(!error){await ensureProfile();await refreshAccount()}});
+ if(name.length<3){msg('#register-message','Ingresá tu nombre y apellido.');$('#reg-name').focus();return}
+ if(!email){msg('#register-message','Ingresá un correo electrónico válido.');$('#reg-email').focus();return}
+ if(password.length<8){msg('#register-message','La contraseña debe tener al menos 8 caracteres.');$('#reg-password').focus();return}
+ button.disabled=true;button.textContent='Creando cuenta…';msg('#register-message','Conectando con Supabase…');
+ try{
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name},emailRedirectTo:location.origin+location.pathname}});
+  if(error){msg('#register-message','No se pudo crear la cuenta: '+error.message);return}
+  if(!data.user){msg('#register-message','Supabase no devolvió un usuario. Revisá la configuración de Email Auth.');return}
+  if(data.session){
+   const {error:pe}=await sb.from('glp_profiles').upsert({user_id:data.user.id,display_name:name,email,access_level:'free'},{onConflict:'user_id'});
+   if(pe)msg('#register-message','La cuenta se creó, pero no se pudo guardar el perfil: '+pe.message);
+   else {msg('#register-message','Cuenta creada correctamente. Ya podés ingresar.');await refreshAccount();}
+  }else{
+   msg('#register-message','Cuenta creada. Revisá tu correo para confirmar el registro y luego iniciá sesión.');
+  }
+ }catch(err){console.error('Error inesperado al registrar:',err);msg('#register-message','Error inesperado al crear la cuenta: '+(err?.message||String(err)));}
+ finally{button.disabled=false;button.textContent='Crear cuenta'}
+}
+async function signInAccount(){
+ if(!requireBackend())return;
+ const button=$('#signin-submit'),email=$('#signin-email').value.trim(),password=$('#signin-password').value;
+ if(!email||!password){msg('#signin-message','Ingresá tu correo y contraseña.');return}
+ button.disabled=true;button.textContent='Ingresando…';msg('#signin-message','Conectando con Supabase…');
+ try{
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error){msg('#signin-message','No se pudo iniciar sesión: '+error.message);return}
+  await ensureProfile();await refreshAccount();msg('#signin-message','Sesión iniciada correctamente.');
+ }catch(err){console.error('Error inesperado al iniciar sesión:',err);msg('#signin-message','Error inesperado al iniciar sesión: '+(err?.message||String(err)));}
+ finally{button.disabled=false;button.textContent='Iniciar sesión'}
+}
+$('#register-submit').addEventListener('click',registerAccount);
+$('#signin-submit').addEventListener('click',signInAccount);
+$('#register-form').addEventListener('submit',e=>{e.preventDefault();registerAccount()});
+$('#signin-form').addEventListener('submit',e=>{e.preventDefault();signInAccount()});
 async function ensureProfile(){const {data:{user}}=await sb.auth.getUser();if(!user)return;const name=user.user_metadata?.display_name||'';await sb.from('glp_profiles').upsert({user_id:user.id,display_name:name,email:user.email,access_level:'free'},{onConflict:'user_id',ignoreDuplicates:true});}
 $('#reset-password').addEventListener('click',async()=>{if(!requireBackend())return;const email=$('#signin-email').value.trim();if(!email){msg('#signin-message','Ingresá primero tu correo electrónico.');return}const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});msg('#signin-message',error?'No se pudo enviar el correo: '+error.message:'Si el correo está registrado, recibirás instrucciones para restablecer la contraseña.')});
 $('#account-logout').addEventListener('click',async()=>{await sb.auth.signOut();await refreshAccount()});

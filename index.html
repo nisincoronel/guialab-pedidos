@@ -72,12 +72,12 @@
    <label>Nombre y apellido<input id="reg-name" required maxlength="100" autocomplete="name" placeholder="Nombre y apellido"></label>
    <label>Correo electrónico<input id="reg-email" type="email" required autocomplete="email" placeholder="tu correo"></label>
    <label>Contraseña<input id="reg-password" type="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></label>
-   <button class="btn primary full" type="submit">Crear cuenta</button><p id="register-message" class="message" aria-live="polite"></p>
+   <button id="register-submit" class="btn primary full" type="button">Crear cuenta</button><p id="register-message" class="message" aria-live="polite"></p>
   </form>
   <form id="signin-form" class="login-card"><h2>Ya tengo cuenta</h2>
    <label>Correo electrónico<input id="signin-email" type="email" required autocomplete="username"></label>
    <label>Contraseña<input id="signin-password" type="password" required autocomplete="current-password"></label>
-   <button class="btn secondary full" type="submit">Iniciar sesión</button><button id="reset-password" class="text-button" type="button">Olvidé mi contraseña</button><p id="signin-message" class="message" aria-live="polite"></p>
+   <button id="signin-submit" class="btn secondary full" type="button">Iniciar sesión</button><button id="reset-password" class="text-button" type="button">Olvidé mi contraseña</button><p id="signin-message" class="message" aria-live="polite"></p>
   </form>
  </div>
  <div id="account-workspace" hidden>
@@ -137,7 +137,7 @@
   <b>Posadas, Misiones | 2026</b>
  </div>
  <div class="footer-links"><a href="https://guialab.net.ar/" target="_blank" rel="noopener">GuiaLab</a><span aria-hidden="true">·</span><span>Una herramienta educativa del ecosistema Espacio Guía</span></div>
- <div class="footer-version">GuiaLab Pedidos · Versión 1.3.0 beta</div>
+ <div class="footer-version">GuiaLab Pedidos · Versión 1.3.1 beta</div>
 </footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

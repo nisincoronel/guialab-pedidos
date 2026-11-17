@@ -1,4 +1,4 @@
-# GuiaLab Pedidos 1.3.0 beta
+# GuiaLab Pedidos 1.3.1 beta
 
 Aplicación educativa PWA para GitHub Pages + Supabase. Estructura plana: todos los archivos en la raíz.
 
@@ -38,3 +38,10 @@ Aplicación educativa PWA para GitHub Pages + Supabase. Estructura plana: todos 
 - Storage de imágenes se mantiene privado y usa enlaces temporales.
 
 Pedidos anonimizados o ficticios para uso didáctico.
+
+
+## Corrección 1.3.1
+- Los botones de crear cuenta e iniciar sesión ejecutan acciones explícitas por click y submit.
+- Se muestran errores de Supabase y excepciones inesperadas en el formulario.
+- Se actualizó la caché del Service Worker para forzar la descarga de los archivos de esta versión.
+- Se mantiene la misma estructura de tablas y migraciones: no ejecutar SQL adicional para esta corrección.
