@@ -1,54 +1,76 @@
-# GuiaLab Pedidos 1.4.0 beta
+# GuiaLab Pedidos 1.6.0 beta
 
-Aplicación educativa PWA para GitHub Pages + Supabase. Estructura plana: todos los archivos en la raíz.
+Aplicación educativa PWA para GitHub Pages + Supabase. Mantiene la estructura de archivos web en la raíz del repositorio y conserva la biblioteca, comisiones y evaluaciones de la versión 1.5.0.
 
-## Novedades de esta beta
-- Registro de cuenta gratuita con Supabase Auth y confirmación de correo (según configuración Auth del proyecto).
-- Inicio de sesión, recuperación de contraseña y cierre de sesión para alumnos.
-- Perfil básico y nivel gratuito.
-- Inscripción a una comisión mediante código generado por el docente.
-- Consulta de evaluaciones publicadas vinculadas a las comisiones del alumno.
-- Resolución y entrega de evaluación con exactamente cinco pedidos; las respuestas quedan guardadas en Supabase.
-- Gestión educativa existente para administradores docentes, sin cambiar la biblioteca ni el catálogo externo.
+## Novedades 1.6.0
 
-## Archivos y despliegue
-1. Reemplazá los archivos de la raíz del repositorio con el contenido del ZIP.
-2. Conservá `config.js` con tu URL y clave pública publishable de Supabase. Nunca uses service_role en el navegador.
-3. En Supabase ejecutá **una sola vez** `migration_1_3.sql`, después de haber ejecutado `migration_1_2.sql` y el esquema inicial.
-4. En Supabase Auth habilitá Email y configurá Site URL y Redirect URLs para `https://pedidos.guialab.net.ar`.
-5. En GitHub Pages mantené branch `main`, carpeta `/ (root)`.
+- Un intento diario para visitantes con sesión anónima de Supabase.
+- Tres intentos gratuitos diarios para cuentas registradas.
+- Después del cupo gratuito, cada nueva práctica consume un crédito.
+- Alumnos con membresía activa en una comisión vigente: prácticas ilimitadas sin consumir créditos.
+- Al finalizar la comisión (fecha `ends_on` alcanzada), el alumno vuelve automáticamente al régimen gratuito. Si la comisión se archiva o se deshabilita la membresía, también deja de tener acceso ilimitado.
+- Los créditos comprados u otorgados se conservan aunque termine la comisión.
+- Saldo, contador diario e historial de movimientos en Mi cuenta.
+- Herramienta docente para otorgar créditos manualmente por UUID.
+- Tablas de paquetes y compras preparadas para integrar Mercado Pago.
 
-## Pruebas de esta beta
-- Crear una cuenta con correo válido y confirmar el correo si Supabase lo solicita.
-- Iniciar sesión, cerrar sesión y probar recuperación de contraseña.
-- Crear una comisión con código de acceso desde el módulo de gestión (la interfaz de creación de comisiones todavía debe completarse).
-- Para probar inscripción, crear la comisión en Supabase con `access_code` y estado `active`; luego ingresar ese código desde Mi cuenta.
-- Para probar examen, crear una evaluación publicada asociada a esa comisión y asignarle cinco casos en `glp_exam_cases` con posiciones 1 a 5.
+## IMPORTANTE: migración
 
-## Limitaciones conocidas (no ocultas)
-- El panel docente todavía no incluye el constructor visual de comisiones/evaluaciones ni la bandeja de corrección. La estructura SQL ya existe, pero la administración completa es trabajo pendiente.
-- La rúbrica de 100 puntos (20 reconocimiento, 15 áreas, 25 muestras/tubos, 20 preanalítica, 20 criterio) y el circuito de devolución/reenvío requieren la siguiente integración de interfaz. La entrega actual guarda las cinco respuestas, pero no califica automáticamente.
-- La cuota de visitantes no se aplica aún: para que sea resistente a manipulación requiere Edge Function y controles antiabuso.
-- La política de consulta de GuiaLab está almacenada en la evaluación; esta beta todavía no bloquea ni habilita el enlace según esa preferencia.
-- No hay pagos ni emisión de constancias.
+Esta versión requiere que las migraciones anteriores estén aplicadas. No vuelvas a ejecutar los esquemas iniciales ni las migraciones anteriores.
 
-## Seguridad
-- Los usuarios nuevos se crean como `free`. El navegador no puede asignar nivel `teacher`, `institution` o `admin`; el trigger de migración bloquea cambios de nivel por usuarios comunes.
+1. Conservá `config.js` tal como está. No reemplaces la URL ni la clave pública de Supabase.
+2. En Supabase SQL Editor ejecutá **una sola vez** `migration_1_6.sql`, después de `migration_1_5.sql`.
+3. En Supabase Authentication habilitá **Anonymous sign-ins** para permitir una práctica de visitante sin registro. La cuenta anónima se usa para identificar el intento diario.
+4. Reemplazá los archivos web del repositorio con los del ZIP, manteniendo el contenido de `config.js`.
+5. Esperá el despliegue de GitHub Pages y recargá con `Ctrl + Shift + R`.
+
+## Reglas de acceso
+
+| Perfil | Intentos gratuitos | Créditos |
+|---|---:|---:|
+| Visitante anónimo | 1 por día | No puede comprar; puede registrarse |
+| Cuenta gratuita | 3 por día | Se usan al agotar el cupo diario |
+| Alumno de comisión vigente | Ilimitados | No se descuentan |
+| Docente administrador | Ilimitados | No se descuentan |
+
+El día se calcula con la zona horaria `America/Argentina/Buenos_Aires`. El intento se consume al iniciar el caso, no al enviar la respuesta. Los créditos no vencen.
+
+## Cómo termina el acceso de alumno
+
+La autorización ilimitada se calcula en el servidor consultando la membresía y la comisión. Requiere que la membresía esté `active`, la comisión esté `active`, que la fecha de inicio haya llegado (si está definida) y que la fecha de finalización no haya pasado (si está definida). No se modifica manualmente el nivel del perfil para conseguirlo.
+
+Al vencer o archivarse la comisión, el usuario pasa a la regla gratuita. El saldo de créditos no se borra.
+
+## Créditos manuales
+
+En Gestión educativa > Créditos de usuarios, ingresá el UUID del usuario, cantidad y motivo. La operación se valida en Supabase y queda en el historial. El docente debe obtener el UUID desde Authentication > Users.
+
+## Mercado Pago: estado de esta versión
+
+**Mercado Pago todavía no procesa pagos reales en esta beta.** Esta versión incorpora las tablas `glp_credit_packages` y `glp_purchases`, pero no activa Checkout Pro ni Webhooks. Para habilitar cobros reales falta desplegar Edge Functions de servidor, configurar Access Token y secreto de Webhook como secretos privados en Supabase, definir precios reales de los paquetes y probar pagos aprobados, rechazados, pendientes, devoluciones y notificaciones duplicadas.
+
+No pegues el Access Token ni el secreto de Webhook en `config.js`, GitHub ni en archivos JavaScript públicos. La acreditación de créditos debe ocurrir exclusivamente después de verificar el pago en el servidor.
+
+## Seguridad y límites
+
+- El navegador no puede modificar el saldo ni los contadores directamente.
+- Las funciones PostgreSQL realizan la autorización y el descuento en una transacción.
+- Los créditos y movimientos son consultables por el propio usuario; las modificaciones se realizan mediante funciones protegidas.
+- La limitación de visitantes usa identidad anónima. Como ocurre con cualquier sistema sin cuenta, borrar los datos del navegador o crear otra identidad puede permitir eludir el límite; el control de visitantes es menos fuerte que el asociado a una cuenta registrada.
+- Los intentos se consumen al iniciar un caso. Abrir un caso y abandonarlo consume ese intento.
 - No subir pedidos con datos identificatorios reales.
-- Storage de imágenes se mantiene privado y usa enlaces temporales.
 
-Pedidos anonimizados o ficticios para uso didáctico.
+## Pruebas recomendadas después de la migración
 
+1. Visitante nuevo: iniciar un pedido; el segundo inicio del día debe bloquearse.
+2. Cuenta gratuita nueva: iniciar tres pedidos; el cuarto debe requerir un crédito.
+3. Otorgar 2 créditos desde Gestión educativa; el usuario debe poder iniciar dos prácticas adicionales.
+4. Alumno de comisión activa: iniciar prácticas sin consumir intentos ni créditos.
+5. Cambiar `ends_on` de una comisión a una fecha pasada o archivar la comisión: el alumno debe volver al límite de 3 prácticas diarias y conservar sus créditos.
+6. Verificar que dos intentos simultáneos no permitan gastar un mismo crédito dos veces.
 
-## Migración 1.4.0: comisiones y alumnos
+## Archivos
 
-Después de haber ejecutado `migration_1_2.sql` y `migration_1_3.sql`, ejecutá una sola vez `migration_1_4.sql` desde Supabase SQL Editor. Esta migración agrega la descripción de las comisiones y ajusta RLS para que los alumnos no puedan auto-modificar sus membresías; la inscripción se realiza mediante la función `glp_join_cohort_by_code`.
-
-La versión 1.4.0 agrega al panel docente la creación de comisiones, códigos de inscripción, listado de alumnos, habilitación/deshabilitación de acceso y archivo/reactivación de comisiones. No incluye todavía el constructor de evaluaciones ni la corrección por rúbrica; esos módulos continúan en la siguiente etapa.
-
-
-## Versión 1.5.0 beta
-Incluye constructor de evaluaciones de cinco pedidos, publicación/cierre, bandeja de entregas y corrección docente con rúbrica de cinco criterios. El puntaje final es el promedio de las cinco rúbricas y se aprueba con 70/100. El alumno entrega en una sesión; si el docente devuelve la evaluación, puede realizar un nuevo intento.
-
-### Migración
-Ejecutar `migration_1_5.sql` una sola vez después de las migraciones 1.2, 1.3 y 1.4 ya aplicadas. Mantener `config.js` existente.
+- `migration_1_6.sql`: migración aditiva del sistema de acceso y créditos.
+- `config.js`: configuración pública existente de Supabase; conservar.
+- Los demás archivos web reemplazan la versión 1.5.0 beta.

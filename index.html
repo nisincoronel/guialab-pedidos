@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#07512f"><meta name="description" content="Plataforma educativa para practicar lectura de pedidos de laboratorio.">
-<title>GuiaLab Pedidos 1.4.0 | Formación</title>
+<title>GuiaLab Pedidos 1.6.0 | Formación</title>
 <link rel="icon" href="./logo-mark.png"><link rel="manifest" href="./manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
 <header class="topbar">
  <a class="brand" href="#inicio" aria-label="GuiaLab Formación y Capacitación Continua"><img src="./logo-formacion.png" alt="GuiaLab Formación y Capacitación Continua"></a>
  <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><a class="nav external-nav" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a><button class="nav" data-view="cuenta">Mi cuenta</button><button class="nav" data-view="docente">Gestión educativa</button></nav>
- <span class="version">VERSIÓN 1.4.0 BETA</span>
+ <span class="version">VERSIÓN 1.6.0 BETA</span>
 </header>
 <main>
 <section id="view-inicio" class="view active">
@@ -67,6 +67,7 @@
 
 <section id="view-cuenta" class="view">
  <div class="page-title"><div><p class="eyebrow">ESPACIO PERSONAL</p><h1>Mi cuenta</h1><p>Registrate para guardar tu progreso y acceder a las actividades habilitadas para alumnos.</p></div><span id="account-status" class="pill">Visitante</span></div>
+ <div id="guest-credit-panel" class="form-card" hidden><h3>Práctica como visitante</h3><p id="guest-credit-summary" class="muted">Tenés 1 intento gratuito por día. Creá una cuenta para acceder a 3 intentos diarios y guardar tu progreso.</p></div>
  <div id="auth-panel" class="account-grid">
   <form id="register-form" class="login-card"><h2>Crear cuenta gratuita</h2>
    <label>Nombre y apellido<input id="reg-name" required maxlength="100" autocomplete="name" placeholder="Nombre y apellido"></label>
@@ -82,6 +83,7 @@
  </div>
  <div id="account-workspace" hidden>
   <div class="admin-toolbar"><div><h2 id="profile-name">Mi perfil</h2><p id="profile-level" class="muted">Cuenta gratuita</p></div><button id="account-logout" class="btn secondary">Cerrar sesión</button></div>
+  <div class="form-card credit-panel"><div class="admin-toolbar"><div><h3>Mis prácticas y créditos</h3><p class="muted">Los intentos gratuitos se renuevan diariamente. Los créditos comprados no vencen.</p></div><span class="pill" id="practice-access-label">Cuenta gratuita</span></div><div class="credit-summary"><div><small>Intentos gratuitos restantes hoy</small><strong id="free-attempts">—</strong></div><div><small>Créditos disponibles</small><strong id="credit-balance">—</strong></div></div><p class="message" id="credit-status-message" aria-live="polite"></p><div class="credit-buy-note"><b>Comprar créditos</b><p>La compra con Mercado Pago se habilitará cuando terminemos la configuración de las credenciales y la verificación de pagos.</p></div><div class="form-card"><h4>Últimos movimientos</h4><div id="credit-history" class="admin-list">Cargando movimientos…</div></div></div>
   <div class="form-card"><h3>Vincularme a un curso</h3><p class="muted">Ingresá el código que te entregó tu docente para habilitar el acceso de alumno.</p><form id="join-cohort-form" class="inline-form"><input id="cohort-code" required placeholder="Código de inscripción"><button class="btn primary">Vincularme</button></form><p id="join-message" class="message"></p></div>
   <div class="form-card"><h3>Mis evaluaciones</h3><div id="student-exams" class="admin-list">Cargando evaluaciones…</div></div><div class="form-card"><h3>Mis entregas y devoluciones</h3><div id="student-submissions" class="admin-list">Cargando entregas…</div></div>
  </div>
@@ -121,6 +123,7 @@
    </div>
    <div class="form-card" id="cohort-roster-card" hidden><div class="admin-toolbar"><div><h3 id="roster-title">Alumnos de la comisión</h3><p id="roster-code" class="muted"></p></div><button type="button" class="btn secondary" id="close-roster">Cerrar</button></div><div id="cohort-roster" class="admin-list"></div></div>
   </section>
+  <section class="cohort-management"><div class="section-title"><div><p class="eyebrow">ADMINISTRACIÓN DE CUENTAS</p><h2>Créditos de usuarios</h2><p class="muted">Otorgá créditos manualmente. Cada operación queda registrada.</p></div></div><form id="admin-credit-form" class="form-card"><label>UUID del usuario<input id="credit-user-id" required placeholder="UUID de Supabase Auth"></label><label>Cantidad de créditos<input id="credit-amount" type="number" min="1" max="10000" step="1" required value="10"></label><label>Motivo<input id="credit-reason" maxlength="180" placeholder="Ej. Bonificación promocional"></label><button class="btn primary" type="submit">Otorgar créditos</button><p id="admin-credit-message" class="message" aria-live="polite"></p></form></section>
   <section class="cohort-management" id="exam-management">
    <div class="section-title"><div><p class="eyebrow">EVALUACIÓN INTEGRADORA</p><h2>Exámenes finales</h2><p class="muted">Creá evaluaciones de cinco pedidos, publicalas para una comisión y corregí las entregas.</p></div></div>
    <div class="admin-layout">
@@ -169,7 +172,7 @@
   <b>Posadas, Misiones | 2026</b>
  </div>
  <div class="footer-links"><a href="https://guialab.net.ar/" target="_blank" rel="noopener">GuiaLab</a><span aria-hidden="true">·</span><span>Una herramienta educativa del ecosistema Espacio Guía</span></div>
- <div class="footer-version">GuiaLab Pedidos · Versión 1.5.0 beta</div>
+ <div class="footer-version">GuiaLab Pedidos · Versión 1.6.0 beta</div>
 </footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

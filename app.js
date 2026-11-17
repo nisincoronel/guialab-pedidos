@@ -1,7 +1,7 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const cfg=window.GLP_CONFIG||{};
 const configured=cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY&&!cfg.SUPABASE_URL.includes("TU-PROYECTO");
-let sb=null,admin=false,currentCase=null,currentExam=null,examCases=[];
+let sb=null,admin=false,currentCase=null,currentExam=null,examCases=[],practiceAccess=null;
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 function go(v){$$(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v));$$(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));window.scrollTo({top:0,behavior:"smooth"});if(v==="biblioteca")loadCases();if(v==="docente")refreshAdmin();if(v==="cuenta")refreshAccount();}
 $$(".nav").forEach(b=>b.addEventListener("click",()=>go(b.dataset.view)));
@@ -70,8 +70,24 @@ function initWorksheet(){
 }
 $("#add-determination").addEventListener("click",()=>addDeterminationRow());
 
+async function ensurePracticeIdentity(){
+ const {data:{session}}=await sb.auth.getSession();
+ if(session?.user)return session.user;
+ const {data,error}=await sb.auth.signInAnonymously();
+ if(error){alert('No se pudo iniciar la sesión de visitante: '+error.message);return null}
+ return data.user;
+}
 async function openCase(id){
  if(!requireBackend())return;
+ const identity=await ensurePracticeIdentity();if(!identity)return;
+ const {data:access,error:accessError}=await sb.rpc('glp_start_practice',{p_case_id:id});
+ if(accessError){alert('No se pudo autorizar la práctica: '+accessError.message);return}
+ if(!access?.allowed){
+  if(access?.reason==='no_credits')alert('Agotaste tus intentos gratuitos y no tenés créditos disponibles. Registrate o iniciá sesión para consultar tu saldo y acceder a paquetes de créditos.');
+  else alert(access?.message||'No tenés intentos disponibles.');
+  await refreshAccount();go('cuenta');return;
+ }
+ practiceAccess=access;
  const {data,error}=await sb.from("glp_cases").select("*").eq("id",id).eq("status","published").single();
  if(error||!data){alert("No se pudo abrir el caso.");return}
  currentCase=data;$("#practice-title").textContent=data.title;$("#practice-meta").textContent=`${data.code} · ${data.difficulty} · ${data.format} · ${(data.areas||[]).join(", ")}`;
@@ -97,18 +113,34 @@ $("#case-search").addEventListener("input",loadCases);$("#difficulty-filter").ad
 async function refreshAccount(){
  if(!sb)return;
  const {data:{session}}=await sb.auth.getSession();
- const logged=!!session;
+ const user=session?.user||null,anonymous=!!user?.is_anonymous,logged=!!user&&!anonymous;
  $('#auth-panel').hidden=logged;$('#account-workspace').hidden=!logged;
- $('#account-status').textContent=logged?'Cuenta activa':'Visitante';
- if(!logged)return;
- const user=session.user;
+ $('#guest-credit-panel').hidden=!anonymous;
+ $('#account-status').textContent=logged?'Cuenta activa':anonymous?'Visitante':'Visitante';
+ if(!user){$('#guest-credit-panel').hidden=true;return}
+ if(anonymous){await loadPracticeStatus(true);return}
  const {data:profile}=await sb.from('glp_profiles').select('display_name,access_level').eq('user_id',user.id).maybeSingle();
  $('#profile-name').textContent=profile?.display_name||user.user_metadata?.display_name||user.email;
  $('#profile-level').textContent=({free:'Cuenta gratuita',student:'Alumno habilitado',teacher:'Docente',institution:'Colaborador institucional',admin:'Administrador'})[profile?.access_level||'free'];
+ await loadPracticeStatus(false);
  await loadStudentExams();
+}
+async function loadPracticeStatus(guest=false){
+ const {data,error}=await sb.rpc('glp_get_practice_status');
+ if(error){if(!guest)msg('#credit-status-message','No se pudo consultar el saldo: '+error.message);else msg('#guest-credit-summary','Tenés 1 intento gratuito diario. Para ver tu saldo, registrate.');return}
+ const free=Number(data.free_remaining??0),balance=Number(data.credit_balance??0);
+ if(guest){$('#guest-credit-summary').textContent=`Te quedan ${free} de 1 intento gratuito hoy. Creá una cuenta para tener 3 intentos diarios y guardar tu progreso.`;return}
+ $('#free-attempts').textContent=data.unlimited?'Ilimitados':`${free} / 3`;
+ $('#credit-balance').textContent=balance;
+ $('#practice-access-label').textContent=data.unlimited?(data.access_type==='teacher'?'Docente':'Alumno de comisión'):'Cuenta gratuita';
+ msg('#credit-status-message',data.unlimited?'Tenés acceso ilimitado mientras esté vigente tu comisión.':free>0?'Primero se utilizan tus intentos gratuitos; después se descuentan créditos.':'Agotaste los intentos gratuitos de hoy. Se utilizará 1 crédito por práctica.');
+ const {data:tx,error:te}=await sb.from('glp_credit_transactions').select('id,amount,transaction_type,description,created_at').order('created_at',{ascending:false}).limit(8);
+ const host=$('#credit-history');if(te){host.textContent='No se pudo cargar el historial.';return}
+ host.innerHTML=tx?.length?tx.map(t=>`<div class="credit-history-row"><span>${escapeHTML(t.description||t.transaction_type)}<small>${new Date(t.created_at).toLocaleString('es-AR')}</small></span><b class="${t.amount>=0?'credit-positive':'credit-negative'}">${t.amount>0?'+':''}${t.amount}</b></div>`).join(''):'<div class="empty">Todavía no hay movimientos de créditos.</div>';
 }
 $('#register-form').addEventListener('submit',async e=>{
  e.preventDefault();if(!requireBackend())return;
+ const {data:{session:priorSession}}=await sb.auth.getSession();if(priorSession?.user?.is_anonymous)await sb.auth.signOut();
  const name=$('#reg-name').value.trim(),email=$('#reg-email').value.trim(),password=$('#reg-password').value;
  if(name.length<3){msg('#register-message','Ingresá tu nombre y apellido.');return}
  msg('#register-message','Creando cuenta…');
@@ -216,6 +248,8 @@ async function loadCohortRoster(id,name,code){
 async function setMemberStatus(cohort,user,status,name,code){const {error}=await sb.from('glp_cohort_members').update({status}).eq('cohort_id',cohort).eq('user_id',user);if(error){alert('No se pudo actualizar el acceso: '+error.message);return}await loadCohortRoster(cohort,name,code);await loadTeacherCohorts()}
 async function setCohortStatus(id,status){const next=status==='active'?'archived':'active';const {error}=await sb.from('glp_cohorts').update({status:next}).eq('id',id);if(error){alert('No se pudo actualizar la comisión: '+error.message);return}await loadTeacherCohorts()}
 $('#close-roster').addEventListener('click',()=>{$('#cohort-roster-card').hidden=true});
+
+$('#admin-credit-form').addEventListener('submit',async e=>{e.preventDefault();if(!admin||!sb)return;const amount=Number($('#credit-amount').value),uid=$('#credit-user-id').value.trim(),reason=$('#credit-reason').value.trim();if(!Number.isInteger(amount)||amount<1){msg('#admin-credit-message','Ingresá una cantidad válida.');return}msg('#admin-credit-message','Procesando…');const {data,error}=await sb.rpc('glp_admin_grant_credits',{p_user_id:uid,p_amount:amount,p_description:reason||'Créditos otorgados por administración'});msg('#admin-credit-message',error?'No se pudieron otorgar los créditos: '+error.message:`Se acreditaron ${data?.amount||amount} créditos. Saldo actual: ${data?.balance??'consultá la cuenta del usuario'}.`)});
 
 async function refreshAdmin(){
  if(!sb)return;
