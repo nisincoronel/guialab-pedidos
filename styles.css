@@ -50,3 +50,8 @@
 }
 @media(max-width:420px){.brand img{width:175px;height:56px}}
 
+
+/* GuiaLab Pedidos 1.1.0 beta · gestión educativa unificada */
+.management-tiles{margin:18px 0 22px}
+.beta-notice{margin:18px 0;padding:18px 20px;border:1px solid #d8e6d8;background:#f5f9f4;border-radius:14px;color:#31543d;line-height:1.6}
+.beta-notice p{margin:7px 0 0;color:#617366;font-size:13px}

@@ -46,13 +46,22 @@ La función existente `glp_evaluate_case` compara los términos esperados config
 No ejecutar nuevamente `supabase_schema.sql` si el proyecto ya tiene las tablas creadas. `config.js` debe conservar Project URL y Publishable key. Nunca publicar una secret/service_role key.
 
 
-### Versión 1.0.3
+### Versión 1.1.0 beta
 - Footer reorganizado en formato centrado y vertical, siguiendo la presentación sencilla del sitio principal GuiaLab.
 - Se conservan los créditos de autoría, el enlace a GuiaLab y la pertenencia a Espacio Guía.
 - Caché de PWA actualizada.
 
 
-### Versión 1.0.3
+### Versión 1.1.0 beta
 - Estructura plana: todos los archivos se encuentran en la raíz, sin carpetas de recursos.
 - Referencias a logos actualizadas para utilizar archivos en la raíz.
 - Caché PWA actualizada para la estructura plana.
+
+
+## Versión 1.1.0 beta — alcance de gestión educativa
+
+Esta entrega conserva la aplicación 1.0.3 y unifica la denominación del área restringida como **Gestión educativa**. La estructura prevista contempla roles y permisos dentro de un mismo espacio: administrador, docente, colaborador institucional, alumno, usuario gratuito y visitante.
+
+**Importante:** esta beta no activa todavía el circuito completo de evaluaciones finales, entregas, correcciones docentes, reenvíos ni comisiones institucionales. La interfaz lo identifica expresamente como preparación para evitar que se confunda una pantalla informativa con una función operativa. La biblioteca, el login docente y la carga/publicación de pedidos siguen siendo las funciones activas heredadas de 1.0.3.
+
+Los límites de visitantes y usuarios gratuitos quedan pendientes de definición. No se aplican cuotas arbitrarias en esta beta.

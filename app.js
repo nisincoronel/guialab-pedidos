@@ -88,7 +88,7 @@ $("#evaluate").addEventListener("click",async()=>{
  $("#evaluate").disabled=false;$("#evaluate").textContent="Enviar respuesta y corregir";
  const box=$("#evaluation-result");box.hidden=false;
  if(error){box.className="result bad";box.textContent="No se pudo corregir la respuesta. "+error.message;return}
- box.className="result"+(data.score<60?" bad":"");
+ box.className="result"+(data.score<70?" bad":"");
  box.innerHTML=`<b>Reconocimiento de determinaciones: ${data.score}%</b><br>Coincidencias: ${data.matched.length?data.matched.map(escapeHTML).join(", "):"No se reconocieron coincidencias."}<br>${data.missing.length?"Para revisar: "+data.missing.map(escapeHTML).join(", ")+"<br>":""}<br><b>Devolución docente</b><br>${escapeHTML(data.explanation||"Revisá la resolución del caso.")}${data.transcription?`<br><br><b>Transcripción docente</b><br>${escapeHTML(data.transcription)}`:""}<br><br><small>La puntuación automática de esta versión corresponde al reconocimiento de las determinaciones esperadas. Los campos de área, muestra, tubo y fase preanalítica se muestran para autoevaluación y todavía no tienen corrección automática independiente.</small>`;
 });
 $("#case-search").addEventListener("input",loadCases);$("#difficulty-filter").addEventListener("change",loadCases);
