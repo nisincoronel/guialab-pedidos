@@ -1,0 +1,19 @@
+{
+  "name": "GuiaLab Pedidos",
+  "short_name": "GuiaLab Pedidos",
+  "description": "Herramienta educativa abierta para practicar la lectura y resolución de pedidos de laboratorio.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f0",
+  "theme_color": "#07512f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./logo-guialab.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -46,7 +46,13 @@ La función existente `glp_evaluate_case` compara los términos esperados config
 No ejecutar nuevamente `supabase_schema.sql` si el proyecto ya tiene las tablas creadas. `config.js` debe conservar Project URL y Publishable key. Nunca publicar una secret/service_role key.
 
 
-### Versión 1.0.2
+### Versión 1.0.3
 - Footer reorganizado en formato centrado y vertical, siguiendo la presentación sencilla del sitio principal GuiaLab.
 - Se conservan los créditos de autoría, el enlace a GuiaLab y la pertenencia a Espacio Guía.
 - Caché de PWA actualizada.
+
+
+### Versión 1.0.3
+- Estructura plana: todos los archivos se encuentran en la raíz, sin carpetas de recursos.
+- Referencias a logos actualizadas para utilizar archivos en la raíz.
+- Caché PWA actualizada para la estructura plana.
