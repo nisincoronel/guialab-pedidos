@@ -1,67 +1,40 @@
-# GuiaLab Pedidos 0.6
+# GuiaLab Pedidos 1.3.0 beta
 
-Aplicación educativa independiente para practicar lectura de pedidos de laboratorio a partir de imágenes anonimizadas. Mantiene la identidad visual de GuiaLab y utiliza el catálogo de determinaciones importado del proyecto original.
+Aplicación educativa PWA para GitHub Pages + Supabase. Estructura plana: todos los archivos en la raíz.
 
-## Qué incluye
+## Novedades de esta beta
+- Registro de cuenta gratuita con Supabase Auth y confirmación de correo (según configuración Auth del proyecto).
+- Inicio de sesión, recuperación de contraseña y cierre de sesión para alumnos.
+- Perfil básico y nivel gratuito.
+- Inscripción a una comisión mediante código generado por el docente.
+- Consulta de evaluaciones publicadas vinculadas a las comisiones del alumno.
+- Resolución y entrega de evaluación con exactamente cinco pedidos; las respuestas quedan guardadas en Supabase.
+- Gestión educativa existente para administradores docentes, sin cambiar la biblioteca ni el catálogo externo.
 
-- Biblioteca común de pedidos publicados por el docente.
-- Panel docente con acceso mediante Supabase Auth.
-- Carga de fotografías JPG, PNG y WebP (máximo 8 MB antes de procesar).
-- Reprocesamiento de imágenes en el navegador a JPEG para reducir tamaño y eliminar metadatos EXIF. Esto **no** elimina texto visible ni datos identificatorios impresos en la imagen.
-- Campos de título, dificultad, formato, áreas, habilidades, consigna, transcripción docente, términos esperados y explicación.
-- Borradores y publicación/despublicación de casos.
-- Corrección en servidor mediante una función RPC; las claves de respuesta no se entregan al navegador del alumno.
-- Catálogo de determinaciones con búsqueda y filtros.
-- Diseño adaptable a computadoras y celulares.
-- PWA con caché de la interfaz y del catálogo. La biblioteca de casos requiere conexión.
+## Archivos y despliegue
+1. Reemplazá los archivos de la raíz del repositorio con el contenido del ZIP.
+2. Conservá `config.js` con tu URL y clave pública publishable de Supabase. Nunca uses service_role en el navegador.
+3. En Supabase ejecutá **una sola vez** `migration_1_3.sql`, después de haber ejecutado `migration_1_2.sql` y el esquema inicial.
+4. En Supabase Auth habilitá Email y configurá Site URL y Redirect URLs para `https://pedidos.guialab.net.ar`.
+5. En GitHub Pages mantené branch `main`, carpeta `/ (root)`.
 
-## Arquitectura
+## Pruebas de esta beta
+- Crear una cuenta con correo válido y confirmar el correo si Supabase lo solicita.
+- Iniciar sesión, cerrar sesión y probar recuperación de contraseña.
+- Crear una comisión con código de acceso desde el módulo de gestión (la interfaz de creación de comisiones todavía debe completarse).
+- Para probar inscripción, crear la comisión en Supabase con `access_code` y estado `active`; luego ingresar ese código desde Mi cuenta.
+- Para probar examen, crear una evaluación publicada asociada a esa comisión y asignarle cinco casos en `glp_exam_cases` con posiciones 1 a 5.
 
-- GitHub Pages: aloja la interfaz estática.
-- Supabase Auth: inicio de sesión docente.
-- Supabase Database: casos y claves de corrección.
-- Supabase Storage: fotografías anonimizadas.
+## Limitaciones conocidas (no ocultas)
+- El panel docente todavía no incluye el constructor visual de comisiones/evaluaciones ni la bandeja de corrección. La estructura SQL ya existe, pero la administración completa es trabajo pendiente.
+- La rúbrica de 100 puntos (20 reconocimiento, 15 áreas, 25 muestras/tubos, 20 preanalítica, 20 criterio) y el circuito de devolución/reenvío requieren la siguiente integración de interfaz. La entrega actual guarda las cinco respuestas, pero no califica automáticamente.
+- La cuota de visitantes no se aplica aún: para que sea resistente a manipulación requiere Edge Function y controles antiabuso.
+- La política de consulta de GuiaLab está almacenada en la evaluación; esta beta todavía no bloquea ni habilita el enlace según esa preferencia.
+- No hay pagos ni emisión de constancias.
 
+## Seguridad
+- Los usuarios nuevos se crean como `free`. El navegador no puede asignar nivel `teacher`, `institution` o `admin`; el trigger de migración bloquea cambios de nivel por usuarios comunes.
+- No subir pedidos con datos identificatorios reales.
+- Storage de imágenes se mantiene privado y usa enlaces temporales.
 
-## Formulario interactivo (práctica abierta)
-La biblioteca continúa siendo pública para visitantes: no se exige cuenta de alumno. Al abrir un caso, el usuario puede agregar filas por determinación y completar área, muestra, tubo/aditivo y notas preanalíticas. El catálogo permite autocompletar algunos campos al seleccionar una determinación conocida.
-
-**Alcance de corrección de esta entrega:** el RPC existente `glp_evaluate_case` sigue corrigiendo por coincidencia de determinaciones esperadas. Los demás campos del formulario se envían junto con la respuesta, pero todavía no tienen puntuación automática individual. No se modificó el esquema SQL ni se requiere volver a ejecutarlo.
-
-
-## GuiaLab Pedidos 1.0
-Esta versión separa responsabilidades: GuiaLab Pedidos es el entorno de práctica y GuiaLab (https://guialab.net.ar/) es la fuente de consulta técnica. Se eliminó la copia local del catálogo de determinaciones para evitar duplicación y divergencia. El alumno puede abrir GuiaLab en otra pestaña mientras resuelve.
-
-### Modalidad
-- Práctica abierta: no se exige cuenta de alumno.
-- El docente mantiene acceso autenticado mediante Supabase.
-- La biblioteca muestra solamente casos publicados.
-- El alumno resuelve cada determinación en una fila con nombre, área, muestra y tubo/aditivo; además completa campos de preparación, condiciones especiales y observaciones.
-- Las imágenes se sirven desde el bucket privado mediante URLs firmadas.
-
-### Alcance de corrección
-La función existente `glp_evaluate_case` compara los términos esperados configurados por el docente con el texto enviado y devuelve una puntuación de reconocimiento de determinaciones. En esta entrega, área, muestra, tubo/aditivo y respuestas preanalíticas se capturan en la resolución, pero NO reciben puntuación automática independiente. Deben revisarse con la devolución docente/transcripción. No se presenta el resultado como evaluación integral de competencia.
-
-### Configuración
-No ejecutar nuevamente `supabase_schema.sql` si el proyecto ya tiene las tablas creadas. `config.js` debe conservar Project URL y Publishable key. Nunca publicar una secret/service_role key.
-
-
-### Versión 1.1.0 beta
-- Footer reorganizado en formato centrado y vertical, siguiendo la presentación sencilla del sitio principal GuiaLab.
-- Se conservan los créditos de autoría, el enlace a GuiaLab y la pertenencia a Espacio Guía.
-- Caché de PWA actualizada.
-
-
-### Versión 1.1.0 beta
-- Estructura plana: todos los archivos se encuentran en la raíz, sin carpetas de recursos.
-- Referencias a logos actualizadas para utilizar archivos en la raíz.
-- Caché PWA actualizada para la estructura plana.
-
-
-## Versión 1.1.0 beta — alcance de gestión educativa
-
-Esta entrega conserva la aplicación 1.0.3 y unifica la denominación del área restringida como **Gestión educativa**. La estructura prevista contempla roles y permisos dentro de un mismo espacio: administrador, docente, colaborador institucional, alumno, usuario gratuito y visitante.
-
-**Importante:** esta beta no activa todavía el circuito completo de evaluaciones finales, entregas, correcciones docentes, reenvíos ni comisiones institucionales. La interfaz lo identifica expresamente como preparación para evitar que se confunda una pantalla informativa con una función operativa. La biblioteca, el login docente y la carga/publicación de pedidos siguen siendo las funciones activas heredadas de 1.0.3.
-
-Los límites de visitantes y usuarios gratuitos quedan pendientes de definición. No se aplican cuotas arbitrarias en esta beta.
+Pedidos anonimizados o ficticios para uso didáctico.

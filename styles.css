@@ -55,3 +55,5 @@
 .management-tiles{margin:18px 0 22px}
 .beta-notice{margin:18px 0;padding:18px 20px;border:1px solid #d8e6d8;background:#f5f9f4;border-radius:14px;color:#31543d;line-height:1.6}
 .beta-notice p{margin:7px 0 0;color:#617366;font-size:13px}
+
+.account-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;max-width:980px}.text-button{border:0;background:none;color:#087346;text-decoration:underline;cursor:pointer;margin-top:12px}.inline-form{display:flex;gap:10px;max-width:620px}.inline-form input{flex:1}.exam-list{display:grid;gap:16px}.exam-case{margin-bottom:4px}.exam-image{display:block;max-width:100%;max-height:440px;object-fit:contain;border-radius:12px;background:#f2f5f3;margin:14px 0}.exam-case textarea{width:100%;margin-top:8px}@media(max-width:760px){.account-grid{grid-template-columns:1fr}.inline-form{flex-direction:column}}

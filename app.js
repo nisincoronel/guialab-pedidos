@@ -1,9 +1,9 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const cfg=window.GLP_CONFIG||{};
 const configured=cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY&&!cfg.SUPABASE_URL.includes("TU-PROYECTO");
-let sb=null,admin=false,currentCase=null;
+let sb=null,admin=false,currentCase=null,currentExam=null,examCases=[];
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-function go(v){$$(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v));$$(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));window.scrollTo({top:0,behavior:"smooth"});if(v==="biblioteca")loadCases();if(v==="docente")refreshAdmin();}
+function go(v){$$(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v));$$(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));window.scrollTo({top:0,behavior:"smooth"});if(v==="biblioteca")loadCases();if(v==="docente")refreshAdmin();if(v==="cuenta")refreshAccount();}
 $$(".nav").forEach(b=>b.addEventListener("click",()=>go(b.dataset.view)));
 $$("[data-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
 function msg(id,t){$(id).textContent=t||""}
@@ -92,6 +92,74 @@ $("#evaluate").addEventListener("click",async()=>{
  box.innerHTML=`<b>Reconocimiento de determinaciones: ${data.score}%</b><br>Coincidencias: ${data.matched.length?data.matched.map(escapeHTML).join(", "):"No se reconocieron coincidencias."}<br>${data.missing.length?"Para revisar: "+data.missing.map(escapeHTML).join(", ")+"<br>":""}<br><b>Devolución docente</b><br>${escapeHTML(data.explanation||"Revisá la resolución del caso.")}${data.transcription?`<br><br><b>Transcripción docente</b><br>${escapeHTML(data.transcription)}`:""}<br><br><small>La puntuación automática de esta versión corresponde al reconocimiento de las determinaciones esperadas. Los campos de área, muestra, tubo y fase preanalítica se muestran para autoevaluación y todavía no tienen corrección automática independiente.</small>`;
 });
 $("#case-search").addEventListener("input",loadCases);$("#difficulty-filter").addEventListener("change",loadCases);
+
+// Registro y acceso de alumnos: Supabase Auth. Los privilegios nunca se asignan desde el navegador.
+async function refreshAccount(){
+ if(!sb)return;
+ const {data:{session}}=await sb.auth.getSession();
+ const logged=!!session;
+ $('#auth-panel').hidden=logged;$('#account-workspace').hidden=!logged;
+ $('#account-status').textContent=logged?'Cuenta activa':'Visitante';
+ if(!logged)return;
+ const user=session.user;
+ const {data:profile}=await sb.from('glp_profiles').select('display_name,access_level').eq('user_id',user.id).maybeSingle();
+ $('#profile-name').textContent=profile?.display_name||user.user_metadata?.display_name||user.email;
+ $('#profile-level').textContent=({free:'Cuenta gratuita',student:'Alumno habilitado',teacher:'Docente',institution:'Colaborador institucional',admin:'Administrador'})[profile?.access_level||'free'];
+ await loadStudentExams();
+}
+$('#register-form').addEventListener('submit',async e=>{
+ e.preventDefault();if(!requireBackend())return;
+ const name=$('#reg-name').value.trim(),email=$('#reg-email').value.trim(),password=$('#reg-password').value;
+ if(name.length<3){msg('#register-message','Ingresá tu nombre y apellido.');return}
+ msg('#register-message','Creando cuenta…');
+ const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name}}});
+ if(error){msg('#register-message',error.message);return}
+ if(data.user){
+  const {error:pe}=await sb.from('glp_profiles').upsert({user_id:data.user.id,display_name:name,email,access_level:'free'},{onConflict:'user_id'});
+  if(pe)console.warn('El perfil se completará al iniciar sesión:',pe.message);
+ }
+ msg('#register-message',data.session?'Cuenta creada. Ya podés ingresar.':'Cuenta creada. Revisá tu correo para confirmar el registro y luego iniciá sesión.');
+});
+$('#signin-form').addEventListener('submit',async e=>{e.preventDefault();if(!requireBackend())return;msg('#signin-message','Ingresando…');const {error}=await sb.auth.signInWithPassword({email:$('#signin-email').value.trim(),password:$('#signin-password').value});msg('#signin-message',error?error.message:'Sesión iniciada.');if(!error){await ensureProfile();await refreshAccount()}});
+async function ensureProfile(){const {data:{user}}=await sb.auth.getUser();if(!user)return;const name=user.user_metadata?.display_name||'';await sb.from('glp_profiles').upsert({user_id:user.id,display_name:name,email:user.email,access_level:'free'},{onConflict:'user_id',ignoreDuplicates:true});}
+$('#reset-password').addEventListener('click',async()=>{if(!requireBackend())return;const email=$('#signin-email').value.trim();if(!email){msg('#signin-message','Ingresá primero tu correo electrónico.');return}const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});msg('#signin-message',error?'No se pudo enviar el correo: '+error.message:'Si el correo está registrado, recibirás instrucciones para restablecer la contraseña.')});
+$('#account-logout').addEventListener('click',async()=>{await sb.auth.signOut();await refreshAccount()});
+$('#join-cohort-form').addEventListener('submit',async e=>{e.preventDefault();const code=$('#cohort-code').value.trim();msg('#join-message','Verificando código…');const {data,error}=await sb.rpc('glp_join_cohort_by_code',{p_code:code});msg('#join-message',error?error.message:(data?.message||'Inscripción procesada.'));if(!error){$('#cohort-code').value='';await refreshAccount()}});
+async function loadStudentExams(){
+ const host=$('#student-exams');host.textContent='Cargando evaluaciones…';
+ const {data:members,error}=await sb.from('glp_cohort_members').select('cohort_id,status').eq('status','active');
+ if(error){host.textContent='No se pudieron consultar tus comisiones. '+error.message;return}
+ if(!members?.length){host.innerHTML='<div class="empty">Todavía no estás vinculado a una comisión. Solicitá un código de inscripción a tu docente.</div>';return}
+ const ids=members.map(x=>x.cohort_id);const {data:exams, error:ee}=await sb.from('glp_exams').select('id,title,instructions,cohort_id,opens_at,closes_at,status,allow_catalog').in('cohort_id',ids).eq('status','published');
+ if(ee){host.textContent='No se pudieron cargar las evaluaciones: '+ee.message;return}
+ host.innerHTML=exams?.length?exams.map(x=>`<div class="admin-item"><b>${escapeHTML(x.title)}</b><small>${escapeHTML(x.instructions||'Evaluación integradora de cinco pedidos')}</small><button class="btn primary" data-exam="${x.id}">Comenzar →</button></div>`).join(''):'<div class="empty">No hay evaluaciones publicadas para tus comisiones.</div>';
+ $$('[data-exam]').forEach(b=>b.addEventListener('click',()=>openExam(b.dataset.exam)));
+}
+async function openExam(id){
+ const {data:exam,error}=await sb.from('glp_exams').select('*').eq('id',id).single();if(error||!exam){alert(error?.message||'No se encontró la evaluación.');return}
+ const {data:links,error:le}=await sb.from('glp_exam_cases').select('case_id,position').eq('exam_id',id).order('position');if(le||!links||links.length!==5){alert('La evaluación todavía no tiene exactamente cinco pedidos configurados.');return}
+ const {data:cases,error:ce}=await sb.from('glp_cases').select('id,code,title,description,prompt,image_path').in('id',links.map(x=>x.case_id));if(ce){alert(ce.message);return}
+ currentExam=exam;examCases=links.map(l=>cases.find(c=>c.id===l.case_id)).filter(Boolean);
+ if(examCases.length!==5){alert('No se pudieron recuperar los cinco pedidos.');return}
+ $('#exam-title').textContent=exam.title;$('#exam-instructions').textContent=exam.instructions||'Resolvé los cinco pedidos.';
+ $('#exam-case-list').innerHTML=examCases.map((c,i)=>`<article class="form-card exam-case"><h3>Pedido ${i+1}: ${escapeHTML(c.title)}</h3><p>${escapeHTML(c.prompt||c.description||'Interpretá el pedido.')}</p><img id="exam-img-${i}" class="exam-image" alt="Pedido educativo ${i+1}"><label>Transcripción y determinaciones<textarea class="exam-answer" data-answer="${c.id}" rows="4" placeholder="Determinaciones, áreas, muestra, tubo y requisitos preanalíticos…"></textarea></label></article>`).join('');
+ for(let i=0;i<examCases.length;i++)$('#exam-img-'+i).src=await imageURL(examCases[i].image_path);
+ $('#exam-submit-message').textContent='';go('examen');
+}
+$('#submit-exam').addEventListener('click',async()=>{
+ if(!currentExam||!sb)return;const answers=$$('.exam-answer');if(answers.some(x=>!x.value.trim())){msg('#exam-submit-message','Completá los cinco pedidos antes de entregar.');return}
+ const {data:{user}}=await sb.auth.getUser();if(!user){msg('#exam-submit-message','Iniciá sesión para entregar el examen.');return}
+ const {data:existing}=await sb.from('glp_submissions').select('id,attempt_no,status').eq('exam_id',currentExam.id).eq('student_id',user.id).order('attempt_no',{ascending:false}).limit(1).maybeSingle();
+ if(existing&&existing.status!=='returned'){msg('#exam-submit-message','Ya existe una entrega para esta evaluación. Esperá la devolución docente.');return}
+ const attempt=(existing?.attempt_no||0)+1;
+ const {data:submission,error}=await sb.from('glp_submissions').insert({exam_id:currentExam.id,student_id:user.id,attempt_no:attempt,status:existing?'resubmitted':'submitted'}).select('id').single();
+ if(error){msg('#exam-submit-message','No se pudo crear la entrega: '+error.message);return}
+ const payload=answers.map(x=>({submission_id:submission.id,case_id:x.dataset.answer,answer:{response:x.value},transcription:x.value}));
+ const {error:ae}=await sb.from('glp_submission_answers').insert(payload);
+ if(ae){await sb.from('glp_submissions').delete().eq('id',submission.id);msg('#exam-submit-message','No se guardaron las respuestas; la entrega fue cancelada: '+ae.message);return}
+ msg('#exam-submit-message','Examen entregado correctamente. La calificación y devolución quedan pendientes de revisión docente.');$('#submit-exam').disabled=true;
+});
+
 async function refreshAdmin(){
  if(!sb)return;
  const {data}=await sb.auth.getSession();
@@ -168,5 +236,5 @@ $("#case-form").addEventListener("submit",async e=>{
  }
  button.disabled=false;button.textContent="Guardar pedido";
 });
-if(sb)sb.auth.onAuthStateChange(()=>refreshAdmin());
-refreshAdmin();
+if(sb)sb.auth.onAuthStateChange(()=>{refreshAdmin();refreshAccount()});
+refreshAdmin();refreshAccount();
