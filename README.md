@@ -1,4 +1,4 @@
-# GuiaLab Pedidos 1.3.1 beta
+# GuiaLab Pedidos 1.4.0 beta
 
 Aplicación educativa PWA para GitHub Pages + Supabase. Estructura plana: todos los archivos en la raíz.
 
@@ -40,8 +40,15 @@ Aplicación educativa PWA para GitHub Pages + Supabase. Estructura plana: todos 
 Pedidos anonimizados o ficticios para uso didáctico.
 
 
-## Corrección 1.3.1
-- Los botones de crear cuenta e iniciar sesión ejecutan acciones explícitas por click y submit.
-- Se muestran errores de Supabase y excepciones inesperadas en el formulario.
-- Se actualizó la caché del Service Worker para forzar la descarga de los archivos de esta versión.
-- Se mantiene la misma estructura de tablas y migraciones: no ejecutar SQL adicional para esta corrección.
+## Migración 1.4.0: comisiones y alumnos
+
+Después de haber ejecutado `migration_1_2.sql` y `migration_1_3.sql`, ejecutá una sola vez `migration_1_4.sql` desde Supabase SQL Editor. Esta migración agrega la descripción de las comisiones y ajusta RLS para que los alumnos no puedan auto-modificar sus membresías; la inscripción se realiza mediante la función `glp_join_cohort_by_code`.
+
+La versión 1.4.0 agrega al panel docente la creación de comisiones, códigos de inscripción, listado de alumnos, habilitación/deshabilitación de acceso y archivo/reactivación de comisiones. No incluye todavía el constructor de evaluaciones ni la corrección por rúbrica; esos módulos continúan en la siguiente etapa.
+
+
+## Versión 1.5.0 beta
+Incluye constructor de evaluaciones de cinco pedidos, publicación/cierre, bandeja de entregas y corrección docente con rúbrica de cinco criterios. El puntaje final es el promedio de las cinco rúbricas y se aprueba con 70/100. El alumno entrega en una sesión; si el docente devuelve la evaluación, puede realizar un nuevo intento.
+
+### Migración
+Ejecutar `migration_1_5.sql` una sola vez después de las migraciones 1.2, 1.3 y 1.4 ya aplicadas. Mantener `config.js` existente.

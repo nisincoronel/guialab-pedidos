@@ -107,44 +107,20 @@ async function refreshAccount(){
  $('#profile-level').textContent=({free:'Cuenta gratuita',student:'Alumno habilitado',teacher:'Docente',institution:'Colaborador institucional',admin:'Administrador'})[profile?.access_level||'free'];
  await loadStudentExams();
 }
-async function registerAccount(){
- if(!requireBackend())return;
- const button=$('#register-submit');
+$('#register-form').addEventListener('submit',async e=>{
+ e.preventDefault();if(!requireBackend())return;
  const name=$('#reg-name').value.trim(),email=$('#reg-email').value.trim(),password=$('#reg-password').value;
- if(name.length<3){msg('#register-message','Ingresá tu nombre y apellido.');$('#reg-name').focus();return}
- if(!email){msg('#register-message','Ingresá un correo electrónico válido.');$('#reg-email').focus();return}
- if(password.length<8){msg('#register-message','La contraseña debe tener al menos 8 caracteres.');$('#reg-password').focus();return}
- button.disabled=true;button.textContent='Creando cuenta…';msg('#register-message','Conectando con Supabase…');
- try{
-  const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name},emailRedirectTo:location.origin+location.pathname}});
-  if(error){msg('#register-message','No se pudo crear la cuenta: '+error.message);return}
-  if(!data.user){msg('#register-message','Supabase no devolvió un usuario. Revisá la configuración de Email Auth.');return}
-  if(data.session){
-   const {error:pe}=await sb.from('glp_profiles').upsert({user_id:data.user.id,display_name:name,email,access_level:'free'},{onConflict:'user_id'});
-   if(pe)msg('#register-message','La cuenta se creó, pero no se pudo guardar el perfil: '+pe.message);
-   else {msg('#register-message','Cuenta creada correctamente. Ya podés ingresar.');await refreshAccount();}
-  }else{
-   msg('#register-message','Cuenta creada. Revisá tu correo para confirmar el registro y luego iniciá sesión.');
-  }
- }catch(err){console.error('Error inesperado al registrar:',err);msg('#register-message','Error inesperado al crear la cuenta: '+(err?.message||String(err)));}
- finally{button.disabled=false;button.textContent='Crear cuenta'}
-}
-async function signInAccount(){
- if(!requireBackend())return;
- const button=$('#signin-submit'),email=$('#signin-email').value.trim(),password=$('#signin-password').value;
- if(!email||!password){msg('#signin-message','Ingresá tu correo y contraseña.');return}
- button.disabled=true;button.textContent='Ingresando…';msg('#signin-message','Conectando con Supabase…');
- try{
-  const {error}=await sb.auth.signInWithPassword({email,password});
-  if(error){msg('#signin-message','No se pudo iniciar sesión: '+error.message);return}
-  await ensureProfile();await refreshAccount();msg('#signin-message','Sesión iniciada correctamente.');
- }catch(err){console.error('Error inesperado al iniciar sesión:',err);msg('#signin-message','Error inesperado al iniciar sesión: '+(err?.message||String(err)));}
- finally{button.disabled=false;button.textContent='Iniciar sesión'}
-}
-$('#register-submit').addEventListener('click',registerAccount);
-$('#signin-submit').addEventListener('click',signInAccount);
-$('#register-form').addEventListener('submit',e=>{e.preventDefault();registerAccount()});
-$('#signin-form').addEventListener('submit',e=>{e.preventDefault();signInAccount()});
+ if(name.length<3){msg('#register-message','Ingresá tu nombre y apellido.');return}
+ msg('#register-message','Creando cuenta…');
+ const {data,error}=await sb.auth.signUp({email,password,options:{data:{display_name:name}}});
+ if(error){msg('#register-message',error.message);return}
+ if(data.user){
+  const {error:pe}=await sb.from('glp_profiles').upsert({user_id:data.user.id,display_name:name,email,access_level:'free'},{onConflict:'user_id'});
+  if(pe)console.warn('El perfil se completará al iniciar sesión:',pe.message);
+ }
+ msg('#register-message',data.session?'Cuenta creada. Ya podés ingresar.':'Cuenta creada. Revisá tu correo para confirmar el registro y luego iniciá sesión.');
+});
+$('#signin-form').addEventListener('submit',async e=>{e.preventDefault();if(!requireBackend())return;msg('#signin-message','Ingresando…');const {error}=await sb.auth.signInWithPassword({email:$('#signin-email').value.trim(),password:$('#signin-password').value});msg('#signin-message',error?error.message:'Sesión iniciada.');if(!error){await ensureProfile();await refreshAccount()}});
 async function ensureProfile(){const {data:{user}}=await sb.auth.getUser();if(!user)return;const name=user.user_metadata?.display_name||'';await sb.from('glp_profiles').upsert({user_id:user.id,display_name:name,email:user.email,access_level:'free'},{onConflict:'user_id',ignoreDuplicates:true});}
 $('#reset-password').addEventListener('click',async()=>{if(!requireBackend())return;const email=$('#signin-email').value.trim();if(!email){msg('#signin-message','Ingresá primero tu correo electrónico.');return}const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});msg('#signin-message',error?'No se pudo enviar el correo: '+error.message:'Si el correo está registrado, recibirás instrucciones para restablecer la contraseña.')});
 $('#account-logout').addEventListener('click',async()=>{await sb.auth.signOut();await refreshAccount()});
@@ -158,6 +134,13 @@ async function loadStudentExams(){
  if(ee){host.textContent='No se pudieron cargar las evaluaciones: '+ee.message;return}
  host.innerHTML=exams?.length?exams.map(x=>`<div class="admin-item"><b>${escapeHTML(x.title)}</b><small>${escapeHTML(x.instructions||'Evaluación integradora de cinco pedidos')}</small><button class="btn primary" data-exam="${x.id}">Comenzar →</button></div>`).join(''):'<div class="empty">No hay evaluaciones publicadas para tus comisiones.</div>';
  $$('[data-exam]').forEach(b=>b.addEventListener('click',()=>openExam(b.dataset.exam)));
+ const {data:{user}}=await sb.auth.getUser();
+ const hist=$('#student-submissions');hist.textContent='Cargando entregas…';
+ const {data:subs,error:he}=await sb.from('glp_submissions').select('id,exam_id,attempt_no,status,submitted_at,total_score,passed,teacher_feedback').eq('student_id',user.id).order('submitted_at',{ascending:false});
+ if(he){hist.textContent='No se pudo cargar el historial: '+he.message;return}
+ if(!subs?.length){hist.innerHTML='<div class="empty">Todavía no realizaste entregas.</div>';return}
+ const exids=[...new Set(subs.map(x=>x.exam_id))];const {data:exnames}=await sb.from('glp_exams').select('id,title').in('id',exids);const en=Object.fromEntries((exnames||[]).map(x=>[x.id,x.title]));
+ hist.innerHTML=subs.map(s=>`<div class="admin-item"><b>${escapeHTML(en[s.exam_id]||'Evaluación')}</b><small>Intento ${s.attempt_no} · ${escapeHTML(s.status)} · ${new Date(s.submitted_at).toLocaleString('es-AR')}</small>${s.total_score!==null?`<small>Calificación: ${s.total_score}/100 · ${s.passed?'Aprobado':'No aprobado'}</small>`:''}${s.teacher_feedback?`<p>${escapeHTML(s.teacher_feedback)}</p>`:''}${s.status==='returned'?'<small>El docente solicitó correcciones. Podés volver a realizar y enviar la evaluación.</small>':''}</div>`).join('');
 }
 async function openExam(id){
  const {data:exam,error}=await sb.from('glp_exams').select('*').eq('id',id).single();if(error||!exam){alert(error?.message||'No se encontró la evaluación.');return}
@@ -165,24 +148,74 @@ async function openExam(id){
  const {data:cases,error:ce}=await sb.from('glp_cases').select('id,code,title,description,prompt,image_path').in('id',links.map(x=>x.case_id));if(ce){alert(ce.message);return}
  currentExam=exam;examCases=links.map(l=>cases.find(c=>c.id===l.case_id)).filter(Boolean);
  if(examCases.length!==5){alert('No se pudieron recuperar los cinco pedidos.');return}
- $('#exam-title').textContent=exam.title;$('#exam-instructions').textContent=exam.instructions||'Resolvé los cinco pedidos.';
+ $('#exam-title').textContent=exam.title;$('#exam-instructions').textContent=(exam.instructions||'Resolvé los cinco pedidos.')+(exam.allow_catalog?' Podés consultar GuiaLab durante la resolución.':' No está permitido consultar GuiaLab durante esta evaluación.');
  $('#exam-case-list').innerHTML=examCases.map((c,i)=>`<article class="form-card exam-case"><h3>Pedido ${i+1}: ${escapeHTML(c.title)}</h3><p>${escapeHTML(c.prompt||c.description||'Interpretá el pedido.')}</p><img id="exam-img-${i}" class="exam-image" alt="Pedido educativo ${i+1}"><label>Transcripción y determinaciones<textarea class="exam-answer" data-answer="${c.id}" rows="4" placeholder="Determinaciones, áreas, muestra, tubo y requisitos preanalíticos…"></textarea></label></article>`).join('');
  for(let i=0;i<examCases.length;i++)$('#exam-img-'+i).src=await imageURL(examCases[i].image_path);
  $('#exam-submit-message').textContent='';go('examen');
 }
 $('#submit-exam').addEventListener('click',async()=>{
- if(!currentExam||!sb)return;const answers=$$('.exam-answer');if(answers.some(x=>!x.value.trim())){msg('#exam-submit-message','Completá los cinco pedidos antes de entregar.');return}
+ if(!currentExam||!sb)return;
+ const answers=$$('.exam-answer');if(answers.length!==5||answers.some(x=>!x.value.trim())){msg('#exam-submit-message','Completá los cinco pedidos antes de entregar.');return}
  const {data:{user}}=await sb.auth.getUser();if(!user){msg('#exam-submit-message','Iniciá sesión para entregar el examen.');return}
- const {data:existing}=await sb.from('glp_submissions').select('id,attempt_no,status').eq('exam_id',currentExam.id).eq('student_id',user.id).order('attempt_no',{ascending:false}).limit(1).maybeSingle();
- if(existing&&existing.status!=='returned'){msg('#exam-submit-message','Ya existe una entrega para esta evaluación. Esperá la devolución docente.');return}
+ const now=Date.now();if(currentExam.opens_at&&now<new Date(currentExam.opens_at).getTime()){msg('#exam-submit-message','La evaluación todavía no está abierta.');return}if(currentExam.closes_at&&now>new Date(currentExam.closes_at).getTime()){msg('#exam-submit-message','El plazo de esta evaluación finalizó.');return}
+ const {data:existing,error:exErr}=await sb.from('glp_submissions').select('id,attempt_no,status').eq('exam_id',currentExam.id).eq('student_id',user.id).order('attempt_no',{ascending:false}).limit(1).maybeSingle();
+ if(exErr){msg('#exam-submit-message','No se pudo verificar el intento anterior: '+exErr.message);return}
+ if(existing&&existing.status!=='returned'){msg('#exam-submit-message','Ya entregaste esta evaluación. Esperá la devolución docente.');return}
  const attempt=(existing?.attempt_no||0)+1;
+ const btn=$('#submit-exam');btn.disabled=true;btn.textContent='Enviando…';
  const {data:submission,error}=await sb.from('glp_submissions').insert({exam_id:currentExam.id,student_id:user.id,attempt_no:attempt,status:existing?'resubmitted':'submitted'}).select('id').single();
- if(error){msg('#exam-submit-message','No se pudo crear la entrega: '+error.message);return}
+ if(error){btn.disabled=false;btn.textContent='Entregar examen';msg('#exam-submit-message','No se pudo crear la entrega: '+error.message);return}
  const payload=answers.map(x=>({submission_id:submission.id,case_id:x.dataset.answer,answer:{response:x.value},transcription:x.value}));
  const {error:ae}=await sb.from('glp_submission_answers').insert(payload);
- if(ae){await sb.from('glp_submissions').delete().eq('id',submission.id);msg('#exam-submit-message','No se guardaron las respuestas; la entrega fue cancelada: '+ae.message);return}
- msg('#exam-submit-message','Examen entregado correctamente. La calificación y devolución quedan pendientes de revisión docente.');$('#submit-exam').disabled=true;
+ if(ae){await sb.from('glp_submissions').delete().eq('id',submission.id);btn.disabled=false;btn.textContent='Entregar examen';msg('#exam-submit-message','No se guardaron las respuestas: '+ae.message);return}
+ msg('#exam-submit-message','Examen entregado correctamente. La sesión de resolución terminó. Podrás consultar la devolución cuando el docente la publique.');btn.textContent='Examen entregado';
 });
+
+
+// Gestión de comisiones: administrador/docente único de esta etapa.
+function makeCohortCode(){return 'GLP-'+Math.random().toString(36).slice(2,6).toUpperCase()+'-'+Math.random().toString(36).slice(2,6).toUpperCase()}
+async function loadTeacherCohorts(){
+ const host=$('#teacher-cohorts');if(!admin||!sb)return;
+ host.textContent='Cargando comisiones…';
+ const {data,error}=await sb.from('glp_cohorts').select('id,name,description,access_code,starts_on,ends_on,status,created_at').order('created_at',{ascending:false});
+ if(error){host.textContent='No se pudieron cargar las comisiones: '+error.message;return}
+ if(!data?.length){host.innerHTML='<div class="empty">Todavía no creaste comisiones. Usá el formulario para crear la primera.</div>';return}
+ const counts={};
+ const ids=data.map(c=>c.id);
+ const {data:members}=await sb.from('glp_cohort_members').select('cohort_id,status').in('cohort_id',ids);
+ (members||[]).forEach(m=>{counts[m.cohort_id]=(counts[m.cohort_id]||0)+(m.status==='active'?1:0)});
+ host.innerHTML=data.map(c=>`<div class="admin-item"><b>${escapeHTML(c.name)}</b><small>${escapeHTML(c.status)} · ${(counts[c.id]||0)} alumnos activos${c.starts_on?' · desde '+escapeHTML(c.starts_on):''}${c.ends_on?' · hasta '+escapeHTML(c.ends_on):''}</small><div class="cohort-code"><code>${escapeHTML(c.access_code||'Sin código')}</code><button type="button" class="btn secondary" data-copy-cohort="${escapeHTML(c.access_code||'')}">Copiar código</button></div><button type="button" class="btn primary" data-roster="${c.id}" data-name="${escapeHTML(c.name)}" data-code="${escapeHTML(c.access_code||'')}">Ver alumnos</button><button type="button" class="btn secondary" data-archive="${c.id}" data-status="${c.status}">${c.status==='active'?'Archivar':'Reactivar'}</button></div>`).join('');
+ $$('[data-copy-cohort]').forEach(b=>b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(b.dataset.copyCohort);b.textContent='Copiado';setTimeout(()=>b.textContent='Copiar código',1400)}catch{msg('#cohort-create-message','No se pudo copiar automáticamente. Seleccioná el código y copialo.')}}));
+ $$('[data-roster]').forEach(b=>b.addEventListener('click',()=>loadCohortRoster(b.dataset.roster,b.dataset.name,b.dataset.code)));
+ $$('[data-archive]').forEach(b=>b.addEventListener('click',()=>setCohortStatus(b.dataset.archive,b.dataset.status)));
+}
+$('#cohort-form').addEventListener('submit',async e=>{
+ e.preventDefault();if(!requireBackend()||!admin)return;
+ const name=$('#cohort-name').value.trim(),start=$('#cohort-start').value||null,end=$('#cohort-end').value||null;
+ if(!name){msg('#cohort-create-message','Ingresá un nombre para la comisión.');return}
+ if(start&&end&&end<start){msg('#cohort-create-message','La fecha de finalización no puede ser anterior al inicio.');return}
+ const {data:{user}}=await sb.auth.getUser();if(!user){msg('#cohort-create-message','La sesión docente expiró. Volvé a ingresar.');return}
+ const button=$('#create-cohort');button.disabled=true;button.textContent='Creando…';msg('#cohort-create-message','');
+ let code=makeCohortCode(),result;
+ for(let i=0;i<3;i++){result=await sb.from('glp_cohorts').insert({name,description:$('#cohort-description').value.trim(),owner_id:user.id,access_code:code,starts_on:start,ends_on:end,status:'active'}).select('id').single();if(!result.error||!String(result.error.message).toLowerCase().includes('duplicate'))break;code=makeCohortCode()}
+ button.disabled=false;button.textContent='Crear comisión y generar código';
+ if(result.error){msg('#cohort-create-message','No se pudo crear la comisión: '+result.error.message);return}
+ msg('#cohort-create-message','Comisión creada. Código de inscripción: '+code);$('#cohort-form').reset();await loadTeacherCohorts();
+});
+async function loadCohortRoster(id,name,code){
+ const card=$('#cohort-roster-card'),host=$('#cohort-roster');card.hidden=false;$('#roster-title').textContent='Alumnos · '+name;$('#roster-code').textContent='Código de inscripción: '+code;host.textContent='Cargando alumnos…';
+ const {data:members,error}=await sb.from('glp_cohort_members').select('user_id,status,enrolled_at').eq('cohort_id',id).order('enrolled_at',{ascending:false});
+ if(error){host.textContent='No se pudieron consultar los alumnos: '+error.message;return}
+ if(!members?.length){host.innerHTML='<div class="empty">Todavía no hay alumnos inscriptos en esta comisión.</div>';card.scrollIntoView({behavior:'smooth',block:'start'});return}
+ const userIds=members.map(m=>m.user_id);const {data:profiles}=await sb.from('glp_profiles').select('user_id,display_name,email,access_level').in('user_id',userIds);
+ const byId=Object.fromEntries((profiles||[]).map(p=>[p.user_id,p]));
+ host.innerHTML=members.map(m=>{const p=byId[m.user_id]||{};return `<div class="admin-item"><b>${escapeHTML(p.display_name||p.email||'Alumno')}</b><small>${escapeHTML(p.email||m.user_id)} · Inscripción: ${new Date(m.enrolled_at).toLocaleDateString('es-AR')} · ${escapeHTML(m.status)}</small><button type="button" class="btn secondary" data-member="${m.user_id}" data-cohort="${id}" data-next="${m.status==='active'?'disabled':'active'}">${m.status==='active'?'Deshabilitar acceso':'Habilitar acceso'}</button></div>`}).join('');
+ $$('[data-member]').forEach(b=>b.addEventListener('click',()=>setMemberStatus(b.dataset.cohort,b.dataset.member,b.dataset.next,name,code)));
+ card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function setMemberStatus(cohort,user,status,name,code){const {error}=await sb.from('glp_cohort_members').update({status}).eq('cohort_id',cohort).eq('user_id',user);if(error){alert('No se pudo actualizar el acceso: '+error.message);return}await loadCohortRoster(cohort,name,code);await loadTeacherCohorts()}
+async function setCohortStatus(id,status){const next=status==='active'?'archived':'active';const {error}=await sb.from('glp_cohorts').update({status:next}).eq('id',id);if(error){alert('No se pudo actualizar la comisión: '+error.message);return}await loadTeacherCohorts()}
+$('#close-roster').addEventListener('click',()=>{$('#cohort-roster-card').hidden=true});
 
 async function refreshAdmin(){
  if(!sb)return;
@@ -194,7 +227,7 @@ async function refreshAdmin(){
   if(!admin)msg("#login-message","Esta cuenta inició sesión, pero no tiene permisos docentes.");
  }
  $("#admin-login").hidden=admin;$("#admin-workspace").hidden=!admin;$("#admin-status").textContent=admin?"Sesión docente":"No autenticado";
- if(admin)loadAdminCases();
+ if(admin){loadAdminCases();loadTeacherCohorts();loadTeacherExams();loadExamBuilderOptions();}
 }
 $("#login-button").addEventListener("click",async()=>{
  if(!requireBackend())return;
@@ -260,5 +293,77 @@ $("#case-form").addEventListener("submit",async e=>{
  }
  button.disabled=false;button.textContent="Guardar pedido";
 });
+
+// Constructor de evaluaciones, bandeja de entregas y corrección docente.
+async function loadExamBuilderOptions(){
+ if(!admin||!sb)return;
+ const [co,ca]=await Promise.all([
+  sb.from('glp_cohorts').select('id,name').eq('status','active').order('created_at',{ascending:false}),
+  sb.from('glp_cases').select('id,title,code,difficulty').eq('status','published').order('created_at',{ascending:false})
+ ]);
+ const cohortSel=$('#exam-cohort');cohortSel.innerHTML='<option value="">Seleccioná una comisión activa</option>'+(co.data||[]).map(x=>`<option value="${x.id}">${escapeHTML(x.name)}</option>`).join('');
+ const host=$('#exam-case-options');host.innerHTML=ca.data?.length?ca.data.map(x=>`<label class="exam-option"><input type="checkbox" value="${x.id}" class="exam-case-check"><span><b>${escapeHTML(x.title)}</b><small>${escapeHTML(x.code)} · ${escapeHTML(x.difficulty)}</small></span></label>`).join(''):'<p class="empty">No hay pedidos publicados. Publicá al menos cinco en la biblioteca.</p>';
+}
+$('#exam-form').addEventListener('submit',async e=>{
+ e.preventDefault();if(!admin||!sb)return;
+ const selected=$$('.exam-case-check:checked').map(x=>x.value);
+ if(selected.length!==5){msg('#exam-create-message',`Seleccionaste ${selected.length}. Debés elegir exactamente cinco pedidos.`);return}
+ const cohort=$('#exam-cohort').value;if(!cohort){msg('#exam-create-message','Seleccioná una comisión.');return}
+ const opens=$('#exam-opens').value?new Date($('#exam-opens').value).toISOString():null;
+ const closes=$('#exam-closes').value?new Date($('#exam-closes').value).toISOString():null;
+ if(opens&&closes&&new Date(closes)<=new Date(opens)){msg('#exam-create-message','La fecha de cierre debe ser posterior a la apertura.');return}
+ const {data:{user}}=await sb.auth.getUser();const btn=$('#save-exam');btn.disabled=true;btn.textContent='Guardando…';
+ const {data:exam,error}=await sb.from('glp_exams').insert({title:$('#exam-name').value.trim(),instructions:$('#exam-instructions-input').value.trim(),owner_id:user.id,cohort_id:cohort,opens_at:opens,closes_at:closes,allow_catalog:$('#exam-allow-catalog').checked,passing_score:70,status:'draft'}).select('id').single();
+ if(error){msg('#exam-create-message','No se pudo crear la evaluación: '+error.message);btn.disabled=false;btn.textContent='Guardar evaluación como borrador';return}
+ const links=selected.map((id,i)=>({exam_id:exam.id,case_id:id,position:i+1}));const {error:le}=await sb.from('glp_exam_cases').insert(links);
+ if(le){await sb.from('glp_exams').delete().eq('id',exam.id);msg('#exam-create-message','No se pudieron asociar los cinco pedidos: '+le.message);btn.disabled=false;btn.textContent='Guardar evaluación como borrador';return}
+ msg('#exam-create-message','Evaluación guardada como borrador. Revisala y publicala cuando esté lista.');$('#exam-form').reset();$('#exam-allow-catalog').checked=true;btn.disabled=false;btn.textContent='Guardar evaluación como borrador';await loadExamBuilderOptions();await loadTeacherExams();
+});
+async function loadTeacherExams(){
+ if(!admin||!sb)return;const host=$('#teacher-exams');host.textContent='Cargando…';
+ const {data,error}=await sb.from('glp_exams').select('id,title,status,cohort_id,created_at,passing_score').order('created_at',{ascending:false});
+ if(error){host.textContent='No se pudieron cargar evaluaciones: '+error.message;return}
+ if(!data?.length){host.innerHTML='<div class="empty">Todavía no creaste evaluaciones.</div>';return}
+ const cohortIds=[...new Set(data.map(x=>x.cohort_id).filter(Boolean))];const {data:co}=cohortIds.length?await sb.from('glp_cohorts').select('id,name').in('id',cohortIds):{data:[]};const names=Object.fromEntries((co||[]).map(x=>[x.id,x.name]));
+ host.innerHTML=data.map(x=>`<div class="admin-item"><b>${escapeHTML(x.title)}</b><small>${escapeHTML(names[x.cohort_id]||'Comisión')} · ${escapeHTML(x.status)} · Aprobación ${x.passing_score||70}/100</small><button class="btn secondary" data-exam-status="${x.id}" data-status="${x.status}">${x.status==='published'?'Cerrar evaluación':x.status==='closed'?'Reabrir':'Publicar'}</button><button class="btn primary" data-exam-submissions="${x.id}" data-title="${escapeHTML(x.title)}">Ver entregas</button></div>`).join('');
+ $$('[data-exam-status]').forEach(b=>b.addEventListener('click',()=>changeExamStatus(b.dataset.examStatus,b.dataset.status)));
+ $$('[data-exam-submissions]').forEach(b=>b.addEventListener('click',()=>loadSubmissions(b.dataset.examSubmissions,b.dataset.title)));
+}
+async function changeExamStatus(id,status){
+ const next=status==='draft'?'published':status==='published'?'closed':'published';
+ if(next==='published'&&!confirm('¿Publicar esta evaluación para los alumnos de la comisión?'))return;
+ const {data:links,error:le}=await sb.from('glp_exam_cases').select('case_id').eq('exam_id',id);if(le){alert(le.message);return}if(next==='published'&&links?.length!==5){alert('La evaluación debe tener exactamente cinco pedidos.');return}
+ const {error}=await sb.from('glp_exams').update({status:next}).eq('id',id);if(error){alert('No se pudo cambiar el estado: '+error.message);return}await loadTeacherExams();
+}
+async function loadSubmissions(examId,title){
+ const panel=$('#submission-panel'),host=$('#submission-list');panel.hidden=false;$('#submission-panel-title').textContent='Entregas · '+title;host.textContent='Cargando entregas…';
+ const {data,error}=await sb.from('glp_submissions').select('id,student_id,attempt_no,status,submitted_at,total_score,passed,teacher_feedback').eq('exam_id',examId).order('submitted_at',{ascending:false});
+ if(error){host.textContent='No se pudieron cargar las entregas: '+error.message;return}
+ if(!data?.length){host.innerHTML='<div class="empty">Todavía no hay alumnos que hayan entregado esta evaluación.</div>';return}
+ const uids=[...new Set(data.map(x=>x.student_id))];const {data:profiles}=await sb.from('glp_profiles').select('user_id,display_name,email').in('user_id',uids);const map=Object.fromEntries((profiles||[]).map(x=>[x.user_id,x]));
+ host.innerHTML=data.map(s=>{const p=map[s.student_id]||{};return `<div class="admin-item"><b>${escapeHTML(p.display_name||p.email||'Alumno')}</b><small>${escapeHTML(p.email||s.student_id)} · Intento ${s.attempt_no} · ${escapeHTML(s.status)} · ${new Date(s.submitted_at).toLocaleString('es-AR')}</small>${s.total_score!==null?`<small>Nota: ${s.total_score}/100 · ${s.passed?'Aprobado':'No aprobado'}</small>`:''}<button class="btn primary" data-grade-submission="${s.id}" data-student="${escapeHTML(p.display_name||p.email||'Alumno')}" data-exam="${examId}">${s.status==='graded'?'Ver corrección':'Corregir / revisar'}</button></div>`}).join('');
+ $$('[data-grade-submission]').forEach(b=>b.addEventListener('click',()=>openGrading(b.dataset.gradeSubmission,b.dataset.student,examId)));
+}
+async function openGrading(submissionId,student,examId){
+ const panel=$('#grading-panel'),host=$('#grading-content');panel.hidden=false;$('#grading-title').textContent='Corrección · '+student;host.textContent='Cargando respuestas…';
+ const {data:sub,error:se}=await sb.from('glp_submissions').select('*').eq('id',submissionId).single();if(se){host.textContent=se.message;return}
+ const {data:answers,error}=await sb.from('glp_submission_answers').select('id,case_id,answer,transcription').eq('submission_id',submissionId);if(error){host.textContent=error.message;return}
+ const caseIds=answers.map(a=>a.case_id);const [{data:cases},{data:grades}]=await Promise.all([sb.from('glp_cases').select('id,title,code').in('id',caseIds),sb.from('glp_submission_grades').select('*').in('answer_id',answers.map(a=>a.id))]);
+ const cMap=Object.fromEntries((cases||[]).map(c=>[c.id,c])),gMap=Object.fromEntries((grades||[]).map(g=>[g.answer_id,g]));
+ host.innerHTML=`<p class="muted">Rúbrica total: reconocimiento 20 · áreas 15 · muestras/tubos 25 · preanalítica 20 · criterio/consulta 20. Se califica cada pedido y se promedia entre cinco.</p>`+answers.map((a,i)=>{const g=gMap[a.id]||{};return `<article class="grade-answer" data-answer-id="${a.id}"><h4>Pedido ${i+1}: ${escapeHTML(cMap[a.case_id]?.title||'Pedido')}</h4><pre>${escapeHTML(a.transcription||a.answer?.response||'')}</pre><div class="grade-grid"><label>Identificación /20<input type="number" min="0" max="20" step="0.5" class="g-rec" value="${g.recognition??0}"></label><label>Áreas /15<input type="number" min="0" max="15" step="0.5" class="g-area" value="${g.areas??0}"></label><label>Muestras y tubos /25<input type="number" min="0" max="25" step="0.5" class="g-sample" value="${g.sample_tubes??0}"></label><label>Preanalítica /20<input type="number" min="0" max="20" step="0.5" class="g-pre" value="${g.preanalytics??0}"></label><label>Criterio y consulta /20<input type="number" min="0" max="20" step="0.5" class="g-judge" value="${g.judgement??0}"></label></div><label>Observación para este pedido<textarea class="g-feedback" rows="2">${escapeHTML(g.feedback||'')}</textarea></label></article>`}).join('')+`<label>Devolución general al alumno<textarea id="overall-feedback" rows="4">${escapeHTML(sub.teacher_feedback||'')}</textarea></label><p id="grade-total" class="result">Puntaje promedio: — / 100</p><div class="actions"><button class="btn secondary" id="save-grade-draft">Guardar corrección</button><button class="btn secondary" id="return-grade">Devolver para corregir</button><button class="btn primary" id="publish-grade">Publicar nota final</button></div><p id="grade-message" class="message"></p>`;
+ const calculate=()=>{let sums=[0,0,0,0,0],valid=true;$$('.grade-answer').forEach(card=>{const vals=['.g-rec','.g-area','.g-sample','.g-pre','.g-judge'].map(s=>Number(card.querySelector(s).value));const max=[20,15,25,20,20];vals.forEach((v,i)=>{if(!Number.isFinite(v)||v<0||v>max[i])valid=false;sums[i]+=v});});const total=sums.reduce((a,b)=>a+b,0)/5;$('#grade-total').textContent=`Puntaje promedio: ${valid?total.toFixed(1):'Revisar valores'} / 100 · ${valid?(total>=70?'Aprobación estimada':'No alcanza 70 puntos'):''}`;return {valid,total};};
+ $$('.grade-answer input').forEach(x=>x.addEventListener('input',calculate));calculate();
+ async function saveGrade(finalAction){const calc=calculate();if(!calc.valid){msg('#grade-message','Hay puntajes fuera de los máximos permitidos.');return}
+  for(const card of $$('.grade-answer')){const vals={recognition:Number(card.querySelector('.g-rec').value),areas:Number(card.querySelector('.g-area').value),sample_tubes:Number(card.querySelector('.g-sample').value),preanalytics:Number(card.querySelector('.g-pre').value),judgement:Number(card.querySelector('.g-judge').value),feedback:card.querySelector('.g-feedback').value,grader_id:(await sb.auth.getUser()).data.user.id,answer_id:card.dataset.answerId};const {error:ge}=await sb.from('glp_submission_grades').upsert(vals,{onConflict:'answer_id'});if(ge){msg('#grade-message','Error al guardar rúbrica: '+ge.message);return}}
+  const upd={teacher_feedback:$('#overall-feedback').value.trim()};if(finalAction==='return'){upd.status='returned';upd.returned_at=new Date().toISOString();}if(finalAction==='publish'){upd.status='graded';upd.graded_at=new Date().toISOString();upd.total_score=Number(calc.total.toFixed(2));upd.passed=calc.total>=70;}
+  if(finalAction){const {error:ue}=await sb.from('glp_submissions').update(upd).eq('id',submissionId);if(ue){msg('#grade-message','La rúbrica se guardó, pero no se pudo actualizar el estado: '+ue.message);return}}
+  msg('#grade-message',finalAction==='return'?'Devolución enviada. El alumno podrá corregir y reenviar.':finalAction==='publish'?'Calificación publicada: '+calc.total.toFixed(1)+'/100. '+(calc.total>=70?'Aprobado.':'No aprobado.'):'Corrección guardada como borrador.');
+  if(finalAction)await loadSubmissions(examId,'');
+ }
+ $('#save-grade-draft').addEventListener('click',()=>saveGrade(null));$('#return-grade').addEventListener('click',()=>saveGrade('return'));$('#publish-grade').addEventListener('click',()=>saveGrade('publish'));
+ panel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('#close-submissions').addEventListener('click',()=>$('#submission-panel').hidden=true);$('#close-grading').addEventListener('click',()=>$('#grading-panel').hidden=true);
+
 if(sb)sb.auth.onAuthStateChange(()=>{refreshAdmin();refreshAccount()});
 refreshAdmin();refreshAccount();

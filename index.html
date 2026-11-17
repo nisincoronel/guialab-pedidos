@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#07512f"><meta name="description" content="Plataforma educativa para practicar lectura de pedidos de laboratorio.">
-<title>GuiaLab Pedidos | Formación</title>
+<title>GuiaLab Pedidos 1.4.0 | Formación</title>
 <link rel="icon" href="./logo-mark.png"><link rel="manifest" href="./manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
 <header class="topbar">
  <a class="brand" href="#inicio" aria-label="GuiaLab Formación y Capacitación Continua"><img src="./logo-formacion.png" alt="GuiaLab Formación y Capacitación Continua"></a>
  <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><a class="nav external-nav" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a><button class="nav" data-view="cuenta">Mi cuenta</button><button class="nav" data-view="docente">Gestión educativa</button></nav>
- <span class="version">VERSIÓN 1.3.0 BETA</span>
+ <span class="version">VERSIÓN 1.4.0 BETA</span>
 </header>
 <main>
 <section id="view-inicio" class="view active">
@@ -72,18 +72,18 @@
    <label>Nombre y apellido<input id="reg-name" required maxlength="100" autocomplete="name" placeholder="Nombre y apellido"></label>
    <label>Correo electrónico<input id="reg-email" type="email" required autocomplete="email" placeholder="tu correo"></label>
    <label>Contraseña<input id="reg-password" type="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></label>
-   <button id="register-submit" class="btn primary full" type="button">Crear cuenta</button><p id="register-message" class="message" aria-live="polite"></p>
+   <button class="btn primary full" type="submit">Crear cuenta</button><p id="register-message" class="message" aria-live="polite"></p>
   </form>
   <form id="signin-form" class="login-card"><h2>Ya tengo cuenta</h2>
    <label>Correo electrónico<input id="signin-email" type="email" required autocomplete="username"></label>
    <label>Contraseña<input id="signin-password" type="password" required autocomplete="current-password"></label>
-   <button id="signin-submit" class="btn secondary full" type="button">Iniciar sesión</button><button id="reset-password" class="text-button" type="button">Olvidé mi contraseña</button><p id="signin-message" class="message" aria-live="polite"></p>
+   <button class="btn secondary full" type="submit">Iniciar sesión</button><button id="reset-password" class="text-button" type="button">Olvidé mi contraseña</button><p id="signin-message" class="message" aria-live="polite"></p>
   </form>
  </div>
  <div id="account-workspace" hidden>
   <div class="admin-toolbar"><div><h2 id="profile-name">Mi perfil</h2><p id="profile-level" class="muted">Cuenta gratuita</p></div><button id="account-logout" class="btn secondary">Cerrar sesión</button></div>
   <div class="form-card"><h3>Vincularme a un curso</h3><p class="muted">Ingresá el código que te entregó tu docente para habilitar el acceso de alumno.</p><form id="join-cohort-form" class="inline-form"><input id="cohort-code" required placeholder="Código de inscripción"><button class="btn primary">Vincularme</button></form><p id="join-message" class="message"></p></div>
-  <div class="form-card"><h3>Mis evaluaciones</h3><div id="student-exams" class="admin-list">Cargando evaluaciones…</div></div>
+  <div class="form-card"><h3>Mis evaluaciones</h3><div id="student-exams" class="admin-list">Cargando evaluaciones…</div></div><div class="form-card"><h3>Mis entregas y devoluciones</h3><div id="student-submissions" class="admin-list">Cargando entregas…</div></div>
  </div>
 </section>
 <section id="view-examen" class="view">
@@ -107,7 +107,39 @@
    <article><span class="tile-icon">02</span><h3>Evaluaciones</h3><p>Prepará evaluaciones con cinco pedidos y configurá las condiciones de resolución.</p></article>
    <article><span class="tile-icon">03</span><h3>Comisiones y colaboración</h3><p>Organizá grupos propios o vinculados a una institución colaboradora.</p></article>
   </div>
-  <div class="form-card beta-notice"><b>Nueva estructura educativa · desarrollo en curso</b><p>La migración 1.2 incorpora la base de datos para perfiles, instituciones, docentes colaboradores, comisiones, evaluaciones de cinco pedidos, entregas y rúbrica. La interfaz operativa de estos flujos se está integrando; todavía no se deben usar estas tablas en producción hasta completar las pruebas de permisos y el flujo de entregas.</p></div>
+  <section class="cohort-management">
+   <div class="section-title"><div><p class="eyebrow">GESTIÓN DE CURSOS</p><h2>Comisiones y alumnos</h2><p class="muted">Creá tus comisiones, compartí el código de inscripción y administrá los alumnos.</p></div></div>
+   <div class="admin-layout cohort-layout">
+    <form id="cohort-form" class="form-card">
+     <h3>Nueva comisión</h3>
+     <label>Nombre del curso o comisión<input id="cohort-name" maxlength="120" required placeholder="Ej. Extraccionista – noviembre 2026"></label>
+     <label>Descripción (opcional)<textarea id="cohort-description" rows="2" placeholder="Turno, modalidad o información para los alumnos"></textarea></label>
+     <div class="two-col"><label>Fecha de inicio<input id="cohort-start" type="date"></label><label>Fecha de finalización<input id="cohort-end" type="date"></label></div>
+     <button class="btn primary full" id="create-cohort" type="submit">Crear comisión y generar código</button><p id="cohort-create-message" class="message" aria-live="polite"></p>
+    </form>
+    <aside class="form-card"><h3>Tus comisiones</h3><p class="muted">Compartí el código con tus alumnos. Deben crear una cuenta gratuita antes de inscribirse.</p><div id="teacher-cohorts" class="admin-list">Cargando comisiones…</div></aside>
+   </div>
+   <div class="form-card" id="cohort-roster-card" hidden><div class="admin-toolbar"><div><h3 id="roster-title">Alumnos de la comisión</h3><p id="roster-code" class="muted"></p></div><button type="button" class="btn secondary" id="close-roster">Cerrar</button></div><div id="cohort-roster" class="admin-list"></div></div>
+  </section>
+  <section class="cohort-management" id="exam-management">
+   <div class="section-title"><div><p class="eyebrow">EVALUACIÓN INTEGRADORA</p><h2>Exámenes finales</h2><p class="muted">Creá evaluaciones de cinco pedidos, publicalas para una comisión y corregí las entregas.</p></div></div>
+   <div class="admin-layout">
+    <form id="exam-form" class="form-card">
+     <h3>Nueva evaluación</h3>
+     <label>Nombre de la evaluación<input id="exam-name" required maxlength="140" placeholder="Ej. Examen final · Extraccionista 2026"></label>
+     <label>Comisión<select id="exam-cohort" required><option value="">Seleccioná una comisión activa</option></select></label>
+     <label>Instrucciones para alumnos<textarea id="exam-instructions-input" rows="3" placeholder="Indicaciones generales, tiempo estimado y criterios…"></textarea></label>
+     <label>Seleccioná exactamente cinco pedidos publicados</label>
+     <div id="exam-case-options" class="exam-options"><p class="muted">Cargando pedidos…</p></div>
+     <div class="two-col"><label>Apertura (opcional)<input id="exam-opens" type="datetime-local"></label><label>Cierre (opcional)<input id="exam-closes" type="datetime-local"></label></div>
+     <label class="checkline"><input id="exam-allow-catalog" type="checkbox" checked> Permitir consultar el catálogo GuiaLab durante el examen</label>
+     <button class="btn primary full" type="submit" id="save-exam">Guardar evaluación como borrador</button><p id="exam-create-message" class="message" aria-live="polite"></p>
+    </form>
+    <aside class="form-card"><h3>Evaluaciones creadas</h3><div id="teacher-exams" class="admin-list">Cargando…</div></aside>
+   </div>
+   <div class="form-card" id="submission-panel" hidden><div class="admin-toolbar"><div><h3 id="submission-panel-title">Entregas recibidas</h3><p class="muted">Revisá cada pedido y asigná los puntos de la rúbrica.</p></div><button type="button" class="btn secondary" id="close-submissions">Cerrar</button></div><div id="submission-list" class="admin-list"></div></div>
+   <div class="form-card" id="grading-panel" hidden><div class="admin-toolbar"><div><h3 id="grading-title">Corrección</h3><p class="muted">Rúbrica por pedido. El puntaje final será el promedio de los cinco pedidos.</p></div><button type="button" class="btn secondary" id="close-grading">Cerrar</button></div><div id="grading-content"></div></div>
+  </section>
   <div class="admin-layout">
    <form id="case-form" class="form-card">
     <h3>Agregar un pedido</h3>
@@ -137,7 +169,7 @@
   <b>Posadas, Misiones | 2026</b>
  </div>
  <div class="footer-links"><a href="https://guialab.net.ar/" target="_blank" rel="noopener">GuiaLab</a><span aria-hidden="true">·</span><span>Una herramienta educativa del ecosistema Espacio Guía</span></div>
- <div class="footer-version">GuiaLab Pedidos · Versión 1.3.1 beta</div>
+ <div class="footer-version">GuiaLab Pedidos · Versión 1.5.0 beta</div>
 </footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
