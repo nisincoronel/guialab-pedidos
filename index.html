@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#07512f"><meta name="description" content="Plataforma educativa para practicar lectura de pedidos de laboratorio.">
+<title>GuiaLab Pedidos 1.7.0 | Formación</title>
+<link rel="icon" href="./logo-mark.png"><link rel="manifest" href="./manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+ <a class="brand" href="#inicio" aria-label="GuiaLab Formación y Capacitación Continua"><img src="./logo-formacion.png" alt="GuiaLab Formación y Capacitación Continua"></a>
+ <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><a class="nav external-nav" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a><button class="nav" data-view="cuenta">Mi cuenta</button><button class="nav" data-view="docente">Gestión educativa</button></nav>
+ <span class="version">VERSIÓN 1.7.0 BETA</span>
+</header>
+<main>
+<section id="view-inicio" class="view active">
+ <div class="hero">
+  <div><p class="eyebrow">ENTRENAMIENTO PREANALÍTICO</p><h1>Aprendé a leer<br><em>pedidos de laboratorio.</em></h1>
+  <p>Practicá con fotografías de pedidos, reconocé determinaciones y desarrollá criterio para identificar cuándo corresponde consultar.</p>
+  <div class="actions"><button class="btn primary" data-go="biblioteca">Ir a la biblioteca →</button><a class="btn secondary" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a></div></div>
+  <div class="hero-visual"><div class="orb"></div><div class="paper"><b>ORDEN DE LABORATORIO</b><small>CASO EDUCATIVO</small><i></i><i></i><i></i><i></i><i></i><span>SIMULADO</span></div><div class="chip">✓ Practicá con criterio</div></div>
+ </div>
+ <div class="section-title"><div><p class="eyebrow">PLATAFORMA DE PRÁCTICA</p><h2>Un espacio para entrenar</h2></div></div>
+ <div class="tiles">
+  <article><span class="tile-icon">01</span><h3>Pedidos fotográficos</h3><p>Interpretá pedidos manuscritos e impresos incorporados por el docente.</p></article>
+  <article><span class="tile-icon">02</span><h3>Lectura crítica</h3><p>Reconocé abreviaturas, ambigüedades e información que requiere confirmación.</p></article>
+  <article><span class="tile-icon">03</span><h3>Consulta técnica</h3><p>Consultá GuiaLab en otra pestaña mientras resolvés el pedido.</p></article>
+ </div>
+ <div class="notice">Pedidos anonimizados o ficticios para uso didáctico.</div>
+</section>
+
+<section id="view-biblioteca" class="view">
+ <div class="page-title"><div><p class="eyebrow">BANCO COMÚN DE EJERCICIOS</p><h1>Biblioteca de pedidos</h1><p>Elegí un caso publicado por el docente para comenzar a practicar.</p></div><span id="case-count" class="pill">Cargando…</span></div>
+ <div class="filters"><input id="case-search" type="search" placeholder="Buscar por título, área o habilidad…"><select id="difficulty-filter"><option value="">Todas las dificultades</option><option>Inicial</option><option>Intermedio</option><option>Avanzado</option></select></div>
+ <div id="case-grid" class="case-grid"><p class="muted">Conectando con la biblioteca…</p></div>
+</section>
+
+<section id="view-practica" class="view">
+ <button class="back" data-go="biblioteca">← Volver a la biblioteca</button>
+ <div class="page-title"><div><p class="eyebrow">EJERCICIO FOTOGRÁFICO</p><h1 id="practice-title">Caso</h1><p id="practice-meta"></p></div><span class="pill">Práctica</span></div>
+ <div class="practice-layout">
+  <article class="image-panel"><div class="panel-label">PEDIDO PARA INTERPRETAR</div><img id="practice-image" alt="Pedido de laboratorio anonimizado"><p id="practice-caption" class="muted"></p></article>
+  <article class="answer-panel interactive-answer">
+   <h2>Resolución del pedido</h2><p id="practice-prompt" class="muted"></p>
+   <div class="exercise-intro"><b>Completá una fila por cada determinación.</b><span>Podés consultar GuiaLab en otra pestaña durante todo el ejercicio. La información de muestra y recipiente debe verificarse según el método y el procedimiento del laboratorio.</span><a class="btn secondary" href="https://guialab.net.ar/" target="_blank" rel="noopener">Abrir GuiaLab para consultar ↗</a></div>
+       <section class="determination-catalog" aria-label="Catálogo de determinaciones">
+     <div class="catalog-heading"><div><h3>Consultar catálogo de determinaciones</h3><p>Buscá por nombre, abreviatura, área o código NBU y agregá el resultado a tu resolución.</p></div><span class="catalog-count">Base local</span></div>
+     <input id="catalog-search" type="search" autocomplete="off" placeholder="Ej. hemograma, TP, KPTT, glucemia…">
+     <div id="catalog-results" class="catalog-results"><p class="muted">Cargando catálogo de determinaciones…</p></div>
+     <datalist id="determination-options"></datalist>
+     <p class="catalog-disclaimer">Referencia educativa. Confirmá siempre muestra, tubo, ayuno y condiciones con el método y el procedimiento vigente del laboratorio.</p>
+    </section>
+    <div class="worksheet-head"><span>Determinación</span><span>Área</span><span>Muestra</span><span>Tubo / aditivo</span></div>
+   <div id="determination-rows"></div>
+   <button id="add-determination" type="button" class="btn secondary full">＋ Agregar determinación</button>
+   <div class="worksheet-extra">
+    <h3>Requisitos preanalíticos</h3>
+    <label for="student-fasting">Ayuno / preparación indicada</label><textarea id="student-fasting" rows="2" placeholder="Indicá si requiere ayuno u otra preparación, o si debe verificarse…"></textarea>
+    <label for="student-special">Condiciones especiales</label><textarea id="student-special" rows="2" placeholder="Horario, medicación, conservación u otras condiciones…"></textarea>
+    <label for="student-observations">Dudas, inconsistencias o consultas necesarias</label><textarea id="student-observations" rows="3" placeholder="¿Hay algo ilegible, contradictorio o que debas confirmar?"></textarea>
+   </div>
+   <p class="hint">La corrección automática de esta versión reconoce las determinaciones esperadas mediante el motor actual. Los campos de área, muestra, tubo y requisitos preanalíticos quedan registrados en tu respuesta para su revisión; todavía no reciben puntuación independiente.</p>
+   <button id="evaluate" class="btn primary full">Enviar resolución y corregir</button><div id="evaluation-result" class="result" hidden></div>
+  </article>
+ </div>
+</section>
+
+
+
+
+<section id="view-cuenta" class="view">
+ <div class="page-title"><div><p class="eyebrow">ESPACIO PERSONAL</p><h1>Mi cuenta</h1><p>Registrate para guardar tu progreso y acceder a las actividades habilitadas para alumnos.</p></div><span id="account-status" class="pill">Visitante</span></div>
+ <div id="guest-credit-panel" class="form-card" hidden><h3>Práctica como visitante</h3><p id="guest-credit-summary" class="muted">Tenés 1 intento gratuito por día. Creá una cuenta para acceder a 3 intentos diarios y guardar tu progreso.</p></div>
+ <div id="auth-panel" class="account-grid">
+  <form id="register-form" class="login-card"><h2>Crear cuenta gratuita</h2>
+   <label>Nombre y apellido<input id="reg-name" required maxlength="100" autocomplete="name" placeholder="Nombre y apellido"></label>
+   <label>Correo electrónico<input id="reg-email" type="email" required autocomplete="email" placeholder="tu correo"></label>
+   <label>Contraseña<input id="reg-password" type="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></label>
+   <button class="btn primary full" type="submit">Crear cuenta</button><p id="register-message" class="message" aria-live="polite"></p>
+  </form>
+  <form id="signin-form" class="login-card"><h2>Ya tengo cuenta</h2>
+   <label>Correo electrónico<input id="signin-email" type="email" required autocomplete="username"></label>
+   <label>Contraseña<input id="signin-password" type="password" required autocomplete="current-password"></label>
+   <button class="btn secondary full" type="submit">Iniciar sesión</button><button id="reset-password" class="text-button" type="button">Olvidé mi contraseña</button><p id="signin-message" class="message" aria-live="polite"></p>
+  </form>
+ </div>
+ <div id="account-workspace" hidden>
+  <div class="admin-toolbar"><div><h2 id="profile-name">Mi perfil</h2><p id="profile-level" class="muted">Cuenta gratuita</p></div><button id="account-logout" class="btn secondary">Cerrar sesión</button></div>
+  <div class="form-card credit-panel"><div class="admin-toolbar"><div><h3>Mis prácticas y créditos</h3><p class="muted">Los intentos gratuitos se renuevan diariamente. Los créditos comprados no vencen.</p></div><span class="pill" id="practice-access-label">Cuenta gratuita</span></div><div class="credit-summary"><div><small>Intentos gratuitos restantes hoy</small><strong id="free-attempts">—</strong></div><div><small>Créditos disponibles</small><strong id="credit-balance">—</strong></div></div><p class="message" id="credit-status-message" aria-live="polite"></p><div class="credit-buy-note"><b>Comprar créditos</b><p>La compra con Mercado Pago se habilitará cuando terminemos la configuración de las credenciales y la verificación de pagos.</p></div><div class="form-card"><h4>Últimos movimientos</h4><div id="credit-history" class="admin-list">Cargando movimientos…</div></div></div>
+  <div class="form-card"><h3>Vincularme a un curso</h3><p class="muted">Ingresá el código que te entregó tu docente para habilitar el acceso de alumno.</p><form id="join-cohort-form" class="inline-form"><input id="cohort-code" required placeholder="Código de inscripción"><button class="btn primary">Vincularme</button></form><p id="join-message" class="message"></p></div>
+  <div class="form-card"><h3>Mis evaluaciones</h3><div id="student-exams" class="admin-list">Cargando evaluaciones…</div></div><div class="form-card"><h3>Mis entregas y devoluciones</h3><div id="student-submissions" class="admin-list">Cargando entregas…</div></div>
+ </div>
+</section>
+<section id="view-examen" class="view">
+ <button class="back" data-go="cuenta">← Volver a mi cuenta</button><div class="page-title"><div><p class="eyebrow">EVALUACIÓN INTEGRADORA</p><h1 id="exam-title">Examen final</h1><p id="exam-instructions"></p></div><span class="pill">5 pedidos · Aprobación 70/100</span></div>
+ <div id="exam-case-list" class="exam-list"></div>
+ <div class="form-card"><h3>Entrega del examen</h3><p class="muted">Resolvé los cinco pedidos y enviá todo en una sola sesión. La consulta de GuiaLab depende de la configuración docente.</p><button id="submit-exam" class="btn primary full">Entregar examen</button><p id="exam-submit-message" class="message"></p></div>
+</section>
+
+<section id="view-docente" class="view">
+ <div class="page-title"><div><p class="eyebrow">ADMINISTRACIÓN RESTRINGIDA</p><h1>Gestión educativa</h1><p>Un solo espacio para docentes, comisiones y colaboradores institucionales.</p></div><span id="admin-status" class="pill">No autenticado</span></div>
+ <div id="admin-login" class="login-card">
+  <h2>Acceso docente</h2><p class="muted">Ingresá con la cuenta autorizada en Supabase.</p>
+  <label>Correo electrónico<input id="admin-email" type="email" autocomplete="username" placeholder="docente@ejemplo.com"></label>
+  <label>Contraseña<input id="admin-password" type="password" autocomplete="current-password" placeholder="Contraseña"></label>
+  <button id="login-button" class="btn primary">Ingresar</button><p id="login-message" class="message"></p>
+ </div>
+ <div id="admin-workspace" hidden>
+  <div class="admin-toolbar"><div><h2>Espacio de trabajo</h2><p class="muted">Tus permisos determinan qué comisiones y actividades podés administrar.</p></div><button id="logout-button" class="btn secondary">Cerrar sesión</button></div>
+  <div class="tiles management-tiles">
+   <article><span class="tile-icon">01</span><h3>Biblioteca</h3><p>Cargá pedidos, prepará claves de corrección y publicá ejercicios.</p></article>
+   <article><span class="tile-icon">02</span><h3>Evaluaciones</h3><p>Prepará evaluaciones con cinco pedidos y configurá las condiciones de resolución.</p></article>
+   <article><span class="tile-icon">03</span><h3>Comisiones y colaboración</h3><p>Organizá grupos propios o vinculados a una institución colaboradora.</p></article>
+  </div>
+  <section class="cohort-management">
+   <div class="section-title"><div><p class="eyebrow">GESTIÓN DE CURSOS</p><h2>Comisiones y alumnos</h2><p class="muted">Creá tus comisiones, compartí el código de inscripción y administrá los alumnos.</p></div></div>
+   <div class="admin-layout cohort-layout">
+    <form id="cohort-form" class="form-card">
+     <h3>Nueva comisión</h3>
+     <label>Nombre del curso o comisión<input id="cohort-name" maxlength="120" required placeholder="Ej. Extraccionista – noviembre 2026"></label>
+     <label>Descripción (opcional)<textarea id="cohort-description" rows="2" placeholder="Turno, modalidad o información para los alumnos"></textarea></label>
+     <div class="two-col"><label>Fecha de inicio<input id="cohort-start" type="date"></label><label>Fecha de finalización<input id="cohort-end" type="date"></label></div>
+     <button class="btn primary full" id="create-cohort" type="submit">Crear comisión y generar código</button><p id="cohort-create-message" class="message" aria-live="polite"></p>
+    </form>
+    <aside class="form-card"><h3>Tus comisiones</h3><p class="muted">Compartí el código con tus alumnos. Deben crear una cuenta gratuita antes de inscribirse.</p><div id="teacher-cohorts" class="admin-list">Cargando comisiones…</div></aside>
+   </div>
+   <div class="form-card" id="cohort-roster-card" hidden><div class="admin-toolbar"><div><h3 id="roster-title">Alumnos de la comisión</h3><p id="roster-code" class="muted"></p></div><button type="button" class="btn secondary" id="close-roster">Cerrar</button></div><div id="cohort-roster" class="admin-list"></div></div>
+  </section>
+  <section class="cohort-management"><div class="section-title"><div><p class="eyebrow">ADMINISTRACIÓN DE CUENTAS</p><h2>Créditos de usuarios</h2><p class="muted">Otorgá créditos manualmente. Cada operación queda registrada.</p></div></div><form id="admin-credit-form" class="form-card"><label>UUID del usuario<input id="credit-user-id" required placeholder="UUID de Supabase Auth"></label><label>Cantidad de créditos<input id="credit-amount" type="number" min="1" max="10000" step="1" required value="10"></label><label>Motivo<input id="credit-reason" maxlength="180" placeholder="Ej. Bonificación promocional"></label><button class="btn primary" type="submit">Otorgar créditos</button><p id="admin-credit-message" class="message" aria-live="polite"></p></form></section>
+  <section class="cohort-management" id="exam-management">
+   <div class="section-title"><div><p class="eyebrow">EVALUACIÓN INTEGRADORA</p><h2>Exámenes finales</h2><p class="muted">Creá evaluaciones de cinco pedidos, publicalas para una comisión y corregí las entregas.</p></div></div>
+   <div class="admin-layout">
+    <form id="exam-form" class="form-card">
+     <h3>Nueva evaluación</h3>
+     <label>Nombre de la evaluación<input id="exam-name" required maxlength="140" placeholder="Ej. Examen final · Extraccionista 2026"></label>
+     <label>Comisión<select id="exam-cohort" required><option value="">Seleccioná una comisión activa</option></select></label>
+     <label>Instrucciones para alumnos<textarea id="exam-instructions-input" rows="3" placeholder="Indicaciones generales, tiempo estimado y criterios…"></textarea></label>
+     <label>Seleccioná exactamente cinco pedidos publicados</label>
+     <div id="exam-case-options" class="exam-options"><p class="muted">Cargando pedidos…</p></div>
+     <div class="two-col"><label>Apertura (opcional)<input id="exam-opens" type="datetime-local"></label><label>Cierre (opcional)<input id="exam-closes" type="datetime-local"></label></div>
+     <label class="checkline"><input id="exam-allow-catalog" type="checkbox" checked> Permitir consultar el catálogo GuiaLab durante el examen</label>
+     <button class="btn primary full" type="submit" id="save-exam">Guardar evaluación como borrador</button><p id="exam-create-message" class="message" aria-live="polite"></p>
+    </form>
+    <aside class="form-card"><h3>Evaluaciones creadas</h3><div id="teacher-exams" class="admin-list">Cargando…</div></aside>
+   </div>
+   <div class="form-card" id="submission-panel" hidden><div class="admin-toolbar"><div><h3 id="submission-panel-title">Entregas recibidas</h3><p class="muted">Revisá cada pedido y asigná los puntos de la rúbrica.</p></div><button type="button" class="btn secondary" id="close-submissions">Cerrar</button></div><div id="submission-list" class="admin-list"></div></div>
+   <div class="form-card" id="grading-panel" hidden><div class="admin-toolbar"><div><h3 id="grading-title">Corrección</h3><p class="muted">Rúbrica por pedido. El puntaje final será el promedio de los cinco pedidos.</p></div><button type="button" class="btn secondary" id="close-grading">Cerrar</button></div><div id="grading-content"></div></div>
+  </section>
+  <div class="admin-layout">
+   <form id="case-form" class="form-card">
+    <h3>Agregar un pedido</h3>
+    <label>Fotografía del pedido (JPG, PNG o WebP)<input id="case-image" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+    <div class="privacy-warning">Antes de cargar: verificá autorización y anonimización completa. No subas nombres, DNI, fechas de nacimiento, números de historia clínica, códigos de barras ni otros identificadores.</div>
+    <label>Título del caso<input id="case-title" maxlength="100" required placeholder="Ej. Pedido manuscrito de rutina"></label>
+    <div class="two-col"><label>Dificultad<select id="case-difficulty"><option>Inicial</option><option selected>Intermedio</option><option>Avanzado</option></select></label><label>Formato<select id="case-format"><option>Manuscrito</option><option>Impreso</option><option>Mixto</option></select></label></div>
+    <label>Área(s) separadas por coma<input id="case-areas" placeholder="Hematología, Química clínica"></label>
+    <label>Habilidades separadas por coma<input id="case-skills" placeholder="Reconocimiento, Preanalítica, Lectura crítica"></label>
+    <label>Consigna para el alumno<textarea id="case-prompt" rows="3" required placeholder="¿Qué debe resolver el alumno?"></textarea></label>
+    <label>Transcripción docente (opcional)<textarea id="case-transcription" rows="3" placeholder="Transcripción revisada por el docente…"></textarea></label>
+    <label>Palabras o determinaciones esperadas<textarea id="case-terms" rows="3" required placeholder="Hemograma, glucemia, urea…"></textarea><small>Separá cada respuesta esperada con coma. La corrección busca coincidencias de texto sin distinguir mayúsculas ni tildes.</small></label>
+    <label>Explicación y devolución<textarea id="case-explanation" rows="4" required placeholder="Explicá la resolución y los criterios que debe aprender el alumno."></textarea></label>
+    <label class="checkline"><input id="case-publish" type="checkbox"> Publicar inmediatamente en la biblioteca de alumnos</label>
+    <button class="btn primary full" id="save-case" type="submit">Guardar pedido</button><p id="save-message" class="message"></p>
+   </form>
+   <aside class="form-card"><h3>Casos cargados</h3><p class="muted">Administrá la visibilidad de los pedidos existentes.</p><div id="admin-case-list" class="admin-list"><p class="muted">Iniciá sesión para ver los casos.</p></div></aside>
+  </div>
+ </div>
+</section>
+</main>
+<footer class="site-footer" aria-label="Créditos de GuiaLab Pedidos">
+ <div class="footer-credit">
+  <span class="footer-kicker">Desarrollado por:</span>
+  <strong>Nisin Coronel</strong>
+  <span>Técnico Superior en Lab. Químico Biológico</span>
+  <b>Posadas, Misiones | 2026</b>
+ </div>
+ <div class="footer-links"><a href="https://guialab.net.ar/" target="_blank" rel="noopener">GuiaLab</a><span aria-hidden="true">·</span><span>Una herramienta educativa del ecosistema Espacio Guía</span></div>
+ <div class="footer-version">GuiaLab Pedidos · Versión 1.7.0 beta</div>
+</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script><script src="./app.js"></script>
+<script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});</script>
+</body></html>
