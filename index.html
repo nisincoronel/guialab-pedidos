@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#07512f"><meta name="description" content="Plataforma educativa para practicar lectura de pedidos de laboratorio.">
-<title>GuiaLab Pedidos 2.0.0 | Formación</title>
+<title>GuiaLab Pedidos 2.1.0 | Formación</title>
 <link rel="icon" href="./logo-mark.png"><link rel="manifest" href="./manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
 <header class="topbar">
  <a class="brand" href="#inicio" aria-label="GuiaLab Formación y Capacitación Continua"><img src="./logo-formacion.png" alt="GuiaLab Formación y Capacitación Continua"></a>
  <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><a class="nav external-nav" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a><button class="nav" data-view="cuenta">Mi cuenta</button><button class="nav" data-view="docente">Gestión educativa</button><button class="nav" data-view="generador">Generador</button></nav>
- <span class="version">VERSIÓN 2.0.0</span>
+ <span class="version">VERSIÓN 2.1.0</span>
 </header>
 <main>
 <section id="view-inicio" class="view active">
@@ -72,7 +72,7 @@
     <button class="btn primary full" type="submit" id="generate-session-button">Crear enlace de pedidos individuales</button>
     <p id="generated-session-message" class="message" aria-live="polite"></p><div id="generated-session-result" class="form-card" hidden></div>
    </form>
-   <aside class="form-card"><div class="admin-toolbar"><div><h3>Actividades por comisión</h3><p class="muted">Enlaces compartidos y estado de las sesiones.</p></div><button class="btn secondary" type="button" id="reload-generated-orders">Actualizar</button></div><div id="random-sessions-list" class="admin-list"></div><hr><h3>Registro general de calificaciones</h3><p class="muted">Exportá las notas de todos los pedidos generados, compartidos e individuales.</p><button type="button" class="btn primary full" id="export-all-generated-grades">Descargar todas las calificaciones (CSV)</button><hr><h3>Pedidos generados</h3><p class="muted">Pedidos compartidos e individuales, con sus entregas.</p><div id="generated-orders-list" class="admin-list">Cargando…</div></aside>
+   <aside class="form-card"><div class="admin-toolbar"><div><h3>Actividades por comisión</h3><p class="muted">Enlaces compartidos y estado de las sesiones.</p></div><button class="btn secondary" type="button" id="reload-generated-orders">Actualizar</button></div><div id="random-sessions-list" class="admin-list"></div><hr><h3>Registro general de calificaciones</h3><p class="muted">Consultá, filtrá e imprimí las notas de todos los pedidos generados, compartidos e individuales.</p><div class="two-col"><label>Buscar alumno o actividad<input id="academic-register-search" type="search" placeholder="Nombre, actividad o código"></label><label>Estado<select id="academic-register-status"><option value="">Todos</option><option value="pending">Pendientes</option><option value="graded">Corregidos</option></select></label></div><div class="actions"><button type="button" class="btn secondary" id="reload-academic-register">Actualizar registro</button><button type="button" class="btn primary" id="print-academic-register">Imprimir acta / Guardar PDF</button><button type="button" class="btn secondary" id="export-all-generated-grades">Descargar CSV completo</button></div><div id="academic-register-list" class="admin-list">Cargando registro…</div><hr><h3>Pedidos generados</h3><p class="muted">Pedidos compartidos e individuales, con sus entregas.</p><div id="generated-orders-list" class="admin-list">Cargando…</div></aside>
   </div>
  </div>
 </section>

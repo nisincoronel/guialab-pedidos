@@ -117,4 +117,32 @@ Reemplazá los archivos del repositorio con el contenido de este ZIP y publicá 
 - El docente ve el nombre, las entregas y el código de seguimiento en el panel; puede copiar el código o exportar un CSV con alumnos, códigos y estados.
 - La consulta pública por código muestra la devolución únicamente después de que el docente la publica.
 
-**Nota:** la persistencia del identificador de asignación depende del almacenamiento local del navegador. Si el alumno cambia de dispositivo o borra los datos del navegador antes de terminar, el sistema no podrá reconocer automáticamente su asignación anterior.
+**Nota:** la recuperación de asignaciones se intenta primero con el identificador local del navegador y, como alternativa, con el nombre normalizado ingresado por el alumno. Como no hay cuentas obligatorias para esta actividad, dos alumnos que compartan exactamente el mismo nombre podrían recuperar la misma asignación; conviene pedir nombre y apellido completos.
+
+
+## GuiaLab Pedidos 2.1.0
+
+Esta versión consolida mejoras de seguridad, confiabilidad y gestión académica.
+
+### Cambios
+- Las claves esperadas de pedidos compartidos e individuales se resuelven en funciones SQL del servidor; la respuesta pública del pedido solo incluye determinación y número.
+- Los pedidos de comisión se seleccionan aleatoriamente en Supabase desde el catálogo habilitado.
+- Los alumnos de pedidos individuales no pueden editar el nombre asignado al pedido; el servidor intenta recuperar la asignación por clave de navegador y por nombre para permitir reingreso desde otro dispositivo.
+- Se impide una segunda entrega en pedidos individuales mediante bloqueo transaccional del pedido y comprobación en base de datos.
+- Se agrega el campo de orden de llenado Vacutainer, visible para el docente y en la devolución publicada.
+- Se agrega registro académico filtrable, impresión de acta (Guardar como PDF) e historial de modificaciones de notas.
+- Se mantiene el código de seguimiento de 10 caracteres. No se incorpora limitación de intentos de consulta, según la decisión del usuario.
+
+### Instalación
+1. Reemplazar los archivos del sitio con el contenido de este ZIP.
+2. En Supabase, ejecutar `migration_1_13.sql` una sola vez, después de `migration_1_12.sql`.
+3. No repetir migraciones anteriores.
+4. Publicar GitHub Pages y recargar con Ctrl+Shift+R.
+
+La migración crea y carga el catálogo privado de determinaciones habilitadas. Verificar la cantidad de registros insertados con:
+
+```sql
+select count(*) from public.glp_determination_catalog where enabled;
+```
+
+La cantidad esperada al construir esta versión es 187 determinaciones habilitadas.

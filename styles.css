@@ -103,3 +103,10 @@
 .tracking-code{display:inline-block;margin:8px 0 12px;padding:12px 18px;border:1px dashed #16833f;border-radius:10px;background:#f2faef;color:#07512f;font-size:22px;font-weight:900;letter-spacing:3px;font-family:ui-monospace,monospace}
 #generated-feedback-lookup{margin-bottom:18px}
 #generated-feedback-result{margin-top:12px}
+
+/* GuiaLab Pedidos 2.1.0 */
+.academic-table{width:100%;border-collapse:collapse;font-size:.9rem;min-width:620px}
+.academic-table th,.academic-table td{padding:9px 10px;border-bottom:1px solid var(--line,#dce5df);text-align:left;vertical-align:top}
+.academic-table th{font-weight:700;background:var(--soft,#f3f7f4)}
+.table-scroll{overflow-x:auto;margin:10px 0}
+.generated-answer small{display:block;color:var(--muted,#64756b);margin-top:6px}

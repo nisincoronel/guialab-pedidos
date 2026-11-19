@@ -410,7 +410,8 @@ let determinationCatalog=[];
 function isEligibleDetermination(r){
  if(!r||!r['Determinación'])return false;
  const group=norm(r['Grupo']||'');const sector=norm(r['Sector']||'');const notes=norm(r['Observaciones']||'');
- return group!=='nomenclador nbu' && sector!=='nomenclador nbu' && !notes.includes('practica incorporada desde el nomenclador bioquimico unico');
+ const nbu=norm(r['NBU']||'');
+ return group!=='nomenclador nbu' && sector!=='nomenclador nbu' && !notes.includes('practica incorporada desde el nomenclador bioquimico unico') && !nbu.includes('consultar nbu');
 }
 async function loadDeterminationCatalog(){
  try{const r=await fetch('./determinaciones.json');if(!r.ok)throw new Error('HTTP '+r.status);const rows=await r.json();determinationCatalog=Array.isArray(rows)?rows.filter(isEligibleDetermination):[];renderPracticeCatalog();}
@@ -433,14 +434,6 @@ function randomUniqueRows(count){
  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
  return pool.slice(0,count);
 }
-function orderDisplayRow(r,i){
- return {numero:i+1,determinacion:r["Determinación"]||"",grupo:r["Grupo"]||"",sector:r["Sector"]||"",muestra:r["Muestra"]||"",tubo:r["Tubo"]||"",aditivo:r["Aditivo"]||""};
-}
-function buildOrderPayload(rows){
- const orderData=rows.map(orderDisplayRow);
- const answerKey=rows.map(r=>({determinacion:r["Determinación"]||"",area:r["Sector"]||r["Grupo"]||"",muestra:r["Muestra"]||"",tubo:r["Tubo"]||"",aditivo:r["Aditivo"]||"",ayuno:r["Ayuno"]||"",toma:r["Toma"]||"",procesamiento:r["Procesamiento"]||"",condiciones:r["Condiciones especiales"]||"",observaciones:r["Observaciones"]||""}));
- return {orderData,answerKey};
-}
 function makeClientKey(sessionToken,studentName){
  const nameKey=norm(studentName).replace(/[^a-z0-9]+/g,'_').slice(0,60)||'alumno';
  const keyName='glp_random_assignment_'+sessionToken+'_'+nameKey;
@@ -453,12 +446,42 @@ async function exportAllGeneratedGrades(){
  if(error){alert('No se pudieron exportar las calificaciones: '+error.message+' Aplicá migration_1_12.sql.');return}
  const rows=data||[];
  if(!rows.length){alert('Todavía no hay entregas para exportar.');return}
- const fields=['Actividad','Modalidad','Alumno','Fecha de entrega','Estado de corrección','Nota del pedido (0-100)','Nota presencial (0-100)','Código de seguimiento','Devolución docente'];
+ const fields=['Actividad','Modalidad','Alumno','Fecha de entrega','Estado de corrección','Nota del pedido (0-100)','Nota presencial (0-100)','Código de seguimiento','Devolución docente','Orden de llenado Vacutainer'];
  const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
- const csv='\ufeff'+[fields.map(quote).join(';'),...rows.map(r=>[r.activity_title,r.order_type,r.student_name,r.submitted_at?new Date(r.submitted_at).toLocaleString('es-AR'):'',r.review_status==='graded'?'Corregida':'Pendiente',r.order_grade,r.practical_grade,r.access_code,r.teacher_feedback].map(quote).join(';'))].join('\r\n');
+ const csv='\ufeff'+[fields.map(quote).join(';'),...rows.map(r=>[r.activity_title,r.order_type,r.student_name,r.submitted_at?new Date(r.submitted_at).toLocaleString('es-AR'):'',r.review_status==='graded'?'Corregida':'Pendiente',r.order_grade,r.practical_grade,r.access_code,r.teacher_feedback,r.vacutainer_order].map(quote).join(';'))].join('\r\n');
  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='guialab_registro_general_calificaciones.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 }
 $('#export-all-generated-grades')?.addEventListener('click',exportAllGeneratedGrades);
+
+let academicRegisterRows=[];
+async function loadAcademicRegister(){
+ const host=$('#academic-register-list');if(!host||!admin)return;
+ host.textContent='Cargando registro académico…';
+ const {data,error}=await sb.rpc('glp_admin_export_all_generated_grades');
+ if(error){host.textContent='No se pudo cargar el registro: '+error.message;return}
+ academicRegisterRows=data||[];renderAcademicRegister();
+}
+function renderAcademicRegister(){
+ const host=$('#academic-register-list');if(!host)return;
+ const term=norm($('#academic-register-search')?.value||'');const status=$('#academic-register-status')?.value||'';
+ const filtered=academicRegisterRows.filter(r=>{
+  const matches=!term||norm([r.student_name,r.activity_title,r.order_type,r.access_code].join(' ')).includes(term);
+  const st=r.review_status==='graded'?'graded':'pending';return matches&&(!status||st===status);
+ });
+ if(!filtered.length){host.innerHTML='<p class="muted">No hay resultados para esos filtros.</p>';return}
+ host.innerHTML=`<div class="table-scroll"><table class="academic-table"><thead><tr><th>Alumno</th><th>Actividad</th><th>Entrega</th><th>Estado</th><th>Virtual</th><th>Presencial</th></tr></thead><tbody>${filtered.map(r=>`<tr><td>${escapeHTML(r.student_name||'—')}</td><td>${escapeHTML(r.activity_title||'—')}</td><td>${r.submitted_at?new Date(r.submitted_at).toLocaleDateString('es-AR'):'—'}</td><td>${r.review_status==='graded'?'Corregida':'Pendiente'}</td><td>${r.order_grade??'—'}</td><td>${r.practical_grade??'—'}</td></tr>`).join('')}</tbody></table></div><small>${filtered.length} de ${academicRegisterRows.length} entregas</small>`;
+}
+$('#academic-register-search')?.addEventListener('input',renderAcademicRegister);
+$('#academic-register-status')?.addEventListener('change',renderAcademicRegister);
+$('#reload-academic-register')?.addEventListener('click',loadAcademicRegister);
+$('#print-academic-register')?.addEventListener('click',()=>{
+ const term=norm($('#academic-register-search')?.value||'');const status=$('#academic-register-status')?.value||'';
+ const rows=academicRegisterRows.filter(r=>(!term||norm([r.student_name,r.activity_title,r.order_type,r.access_code].join(' ')).includes(term))&&(!status||(r.review_status==='graded'?'graded':'pending')===status));
+ const esc=s=>String(s??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const w=window.open('','_blank');if(!w){alert('Permití las ventanas emergentes para imprimir el acta.');return}
+ w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Acta de calificaciones · GuiaLab</title><style>body{font:12px Arial,sans-serif;margin:24px;color:#111}h1{font-size:20px}p{color:#555}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #aaa;padding:7px;text-align:left}th{background:#eee}.sign{margin-top:55px;display:flex;justify-content:space-around}@media print{button{display:none}}</style></head><body><h1>Registro general de calificaciones · GuiaLab Pedidos</h1><p>Fecha de emisión: ${new Date().toLocaleString('es-AR')}</p><table><thead><tr><th>Alumno</th><th>Actividad</th><th>Fecha</th><th>Estado</th><th>Nota virtual</th><th>Nota presencial</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.student_name)}</td><td>${esc(r.activity_title)}</td><td>${r.submitted_at?new Date(r.submitted_at).toLocaleDateString('es-AR'):'—'}</td><td>${r.review_status==='graded'?'Corregida':'Pendiente'}</td><td>${esc(r.order_grade)}</td><td>${esc(r.practical_grade)}</td></tr>`).join('')}</tbody></table><div class="sign"><span>Firma docente: ____________________</span><span>Fecha: ____________________</span></div><script>window.onload=()=>window.print()<\/script></body></html>`);w.document.close();
+});
+
 
 async function loadGeneratedOrders(){
  if(!admin||!sb)return;
@@ -495,9 +518,10 @@ async function loadGeneratedSubmissions(orderId,title){
  host.innerHTML=`<h3>Entregas · ${escapeHTML(title)}</h3>`+data.map((sub)=>{
   const response=Array.isArray(sub.response)?sub.response:[];const expected=Array.isArray(sub.answer_key)?sub.answer_key:[];
   const reviewed=sub.review_status==='graded';
-  return `<section class="generated-submission" data-submission="${sub.id}"><div class="admin-toolbar"><div><b>${escapeHTML(sub.student_name)}</b><small>${new Date(sub.submitted_at).toLocaleString('es-AR')} · ${reviewed?'Corregida':'Pendiente de corrección'}${reviewed&&sub.teacher_grade!==null?' · Nota '+sub.teacher_grade+'/100':''}</small>${sub.access_code?`<small>Código del alumno: <code>${escapeHTML(sub.access_code)}</code> <button type="button" class="btn secondary" data-copy-access="${escapeHTML(sub.access_code)}">Copiar código</button></small>`:''}</div><button type="button" class="btn secondary" data-open-generated-submission="${sub.id}">${reviewed?'Ver / editar corrección':'Corregir entrega'}</button></div><div id="generated-grade-${sub.id}" hidden><div class="generated-grade-items">${response.map((r,i)=>{const k=expected[i]||{};return `<article class="generated-grade-item"><h4>${i+1}. ${escapeHTML(r.determinacion||k.determinacion||'Determinación')}</h4><div class="two-col"><div><b>Respuesta del alumno</b><p>Área: ${escapeHTML(r.area||'—')}<br>Muestra: ${escapeHTML(r.muestra||'—')}<br>Tubo/aditivo: ${escapeHTML(r.tubo||'—')}<br>Preparación: ${escapeHTML(r.preparacion||'—')}<br>Observaciones: ${escapeHTML(r.observaciones||'—')}</p></div><div><b>Clave esperada</b><p>Área: ${escapeHTML(k.area||'No cargada')}<br>Muestra: ${escapeHTML(k.muestra||'No cargada')}<br>Tubo: ${escapeHTML(k.tubo||'No cargado')}<br>Aditivo: ${escapeHTML(k.aditivo||'No cargado')}<br>Ayuno: ${escapeHTML(k.ayuno||'No especificado')}<br>Toma: ${escapeHTML(k.toma||'No especificada')}<br>Procesamiento: ${escapeHTML(k.procesamiento||'No especificado')}<br>Condiciones: ${escapeHTML(k.condiciones||'No especificadas')}</p></div></div><label>Puntaje de esta determinación (0 a 100)<input class="generated-item-score" type="number" min="0" max="100" step="1" value="${escapeHTML((sub.item_grades||{})[i]??'')}" data-index="${i}"></label></article>`}).join('')}</div><label>Devolución general<textarea class="generated-teacher-feedback" rows="3" placeholder="Fortalezas, errores y aspectos a mejorar…">${escapeHTML(sub.teacher_feedback||'')}</textarea></label><div class="form-card"><h4>Calificación presencial (opcional)</h4><p class="muted">Campo independiente de la nota del pedido. Completalo después de evaluar al alumno presencialmente.</p><label>Nota presencial (0 a 100)<input class="generated-practical-grade" type="number" min="0" max="100" step="0.5" placeholder="Dejar vacío si todavía no fue evaluado" value="${sub.practical_grade??''}"></label></div><div class="actions"><button type="button" class="btn primary" data-save-generated-grade="${sub.id}">Guardar y publicar corrección</button></div><p class="message" id="generated-grade-message-${sub.id}"></p></div></section>`;
+  return `<section class="generated-submission" data-submission="${sub.id}"><div class="admin-toolbar"><div><b>${escapeHTML(sub.student_name)}</b><small>${new Date(sub.submitted_at).toLocaleString('es-AR')} · ${reviewed?'Corregida':'Pendiente de corrección'}${reviewed&&sub.teacher_grade!==null?' · Nota '+sub.teacher_grade+'/100':''}</small>${sub.access_code?`<small>Código del alumno: <code>${escapeHTML(sub.access_code)}</code> <button type="button" class="btn secondary" data-copy-access="${escapeHTML(sub.access_code)}">Copiar código</button></small>`:''}</div><button type="button" class="btn secondary" data-open-generated-submission="${sub.id}">${reviewed?'Ver / editar corrección':'Corregir entrega'}</button></div><div id="generated-grade-${sub.id}" hidden>${response[0]?.orden_llenado_vacutainer?`<div class="notice"><b>Orden de llenado Vacutainer informado por el alumno</b><p>${escapeHTML(response[0].orden_llenado_vacutainer)}</p></div>`:''}<div class="generated-grade-items">${response.map((r,i)=>{const k=expected[i]||{};return `<article class="generated-grade-item"><h4>${i+1}. ${escapeHTML(r.determinacion||k.determinacion||'Determinación')}</h4><div class="two-col"><div><b>Respuesta del alumno</b><p>Área: ${escapeHTML(r.area||'—')}<br>Muestra: ${escapeHTML(r.muestra||'—')}<br>Tubo/aditivo: ${escapeHTML(r.tubo||'—')}<br>Preparación: ${escapeHTML(r.preparacion||'—')}<br>Observaciones: ${escapeHTML(r.observaciones||'—')}</p></div><div><b>Clave esperada</b><p>Área: ${escapeHTML(k.area||'No cargada')}<br>Muestra: ${escapeHTML(k.muestra||'No cargada')}<br>Tubo: ${escapeHTML(k.tubo||'No cargado')}<br>Aditivo: ${escapeHTML(k.aditivo||'No cargado')}<br>Ayuno: ${escapeHTML(k.ayuno||'No especificado')}<br>Toma: ${escapeHTML(k.toma||'No especificada')}<br>Procesamiento: ${escapeHTML(k.procesamiento||'No especificado')}<br>Condiciones: ${escapeHTML(k.condiciones||'No especificadas')}</p></div></div><label>Puntaje de esta determinación (0 a 100)<input class="generated-item-score" type="number" min="0" max="100" step="1" value="${escapeHTML((sub.item_grades||{})[i]??'')}" data-index="${i}"></label></article>`}).join('')}</div><label>Devolución general<textarea class="generated-teacher-feedback" rows="3" placeholder="Fortalezas, errores y aspectos a mejorar…">${escapeHTML(sub.teacher_feedback||'')}</textarea></label><div class="form-card"><h4>Calificación presencial (opcional)</h4><p class="muted">Campo independiente de la nota del pedido. Completalo después de evaluar al alumno presencialmente.</p><label>Nota presencial (0 a 100)<input class="generated-practical-grade" type="number" min="0" max="100" step="0.5" placeholder="Dejar vacío si todavía no fue evaluado" value="${sub.practical_grade??''}"></label></div><div class="actions"><button type="button" class="btn primary" data-save-generated-grade="${sub.id}">Guardar y publicar corrección</button><button type="button" class="btn secondary" data-grade-history="${sub.id}">Ver historial de notas</button></div><div class="admin-list" id="generated-history-${sub.id}" hidden></div><p class="message" id="generated-grade-message-${sub.id}"></p></div></section>`;
  }).join('');
  host.querySelectorAll('[data-open-generated-submission]').forEach(b=>b.addEventListener('click',()=>{const panel=$(`#generated-grade-${b.dataset.openGeneratedSubmission}`);panel.hidden=!panel.hidden;}));
+ host.querySelectorAll('[data-grade-history]').forEach(b=>b.addEventListener('click',async()=>{const panel=$(`#generated-history-${b.dataset.gradeHistory}`);panel.hidden=false;panel.textContent='Cargando historial…';const {data,error}=await sb.rpc('glp_admin_get_grade_history',{p_submission_id:b.dataset.gradeHistory});if(error){panel.textContent='No se pudo cargar el historial: '+error.message;return}panel.innerHTML=(data||[]).length?'<b>Historial de cambios</b>'+data.map(h=>`<article class="admin-item"><small>${new Date(h.changed_at).toLocaleString('es-AR')} · ${h.field_name==='pedido'?'Nota del pedido':'Nota presencial'}</small><small>Anterior: ${escapeHTML(JSON.stringify(h.old_value))}</small><small>Nuevo: ${escapeHTML(JSON.stringify(h.new_value))}</small></article>`).join(''):'Todavía no hay modificaciones registradas.';}));
  host.querySelectorAll('[data-copy-access]').forEach(b=>b.addEventListener('click',()=>navigator.clipboard.writeText(b.dataset.copyAccess).then(()=>alert('Código copiado')).catch(()=>prompt('Copiá el código',b.dataset.copyAccess))));
  host.querySelectorAll('[data-save-generated-grade]').forEach(b=>b.addEventListener('click',async()=>{
   const id=b.dataset.saveGeneratedGrade,card=b.closest('.generated-submission'),scores=[...card.querySelectorAll('.generated-item-score')].map(x=>x.value.trim()===''?null:Number(x.value));
@@ -522,14 +546,14 @@ $('#generated-order-form').addEventListener('submit',async e=>{
  if(!determinationCatalog.length){msg('#generated-order-message','No se pudo cargar determinaciones.json. Verificá que esté en la raíz del sitio.');return}
  const count=Number($('#generated-count').value),rows=randomUniqueRows(count);
  if(rows.length!==count){msg('#generated-order-message','La base no tiene suficientes determinaciones.');return}
- const {orderData,answerKey}=buildOrderPayload(rows);
+ const determinationNames=rows.map(r=>r['Determinación']);
  const expiry=$('#generated-expiry').value?new Date($('#generated-expiry').value).toISOString():null;
  const btn=$('#generate-order-button');btn.disabled=true;btn.textContent='Generando…';msg('#generated-order-message','');
- const {data,error}=await sb.rpc('glp_create_generated_order',{
+ const {data,error}=await sb.rpc('glp_create_generated_order_from_catalog',{
   p_title:$('#generated-title').value.trim()||'Pedido simulado',
   p_instructions:$('#generated-instructions').value.trim(),
   p_difficulty:$('#generated-difficulty').value,
-  p_order_data:orderData,p_answer_key:answerKey,p_expires_at:expiry
+  p_determinations:determinationNames,p_expires_at:expiry
  });
  btn.disabled=false;btn.textContent='Generar pedido y enlace';
  if(error){msg('#generated-order-message','No se pudo generar: '+error.message+' · Si la función no existe, ejecutá migration_1_7.sql en Supabase.');return}
@@ -565,9 +589,9 @@ async function openGeneratedOrder(token){
  $('#generated-student-instructions').textContent=data.instructions||'Completá la resolución de este pedido simulado.';
  $('#generated-student-meta').textContent=`${data.item_count} determinaciones · ${data.difficulty}`;
  const rows=data.order_data||[];
- $('#generated-student-content').innerHTML=`<form id="generated-student-form"><label>Tu nombre${data.assigned_student_name?'':' (opcional)'}<input id="generated-student-name" maxlength="100" placeholder="Nombre y apellido" value="${escapeHTML(data.assigned_student_name||'')}" ${data.assigned_student_name?'required':''}></label><div class="notice">Pedido simulado para entrenamiento. No representa una orden médica real.</div><div class="generated-paper"><h3>ORDEN DE LABORATORIO</h3><p>Paciente: ____________________　Fecha: ____ / ____ / ______</p>${rows.map(r=>`<div class="generated-line"><b>${r.numero}.</b> ${escapeHTML(r.determinacion)}</div>`).join('')}</div><h3>Resolución del alumno</h3>${rows.map((r,i)=>`<fieldset class="generated-answer"><legend>Determinación ${i+1}: ${escapeHTML(r.determinacion)}</legend><div class="two-col"><label>Área<input class="gs-area" data-i="${i}" placeholder="Área del laboratorio"></label><label>Muestra<input class="gs-sample" data-i="${i}" placeholder="Muestra biológica"></label><label>Tubo / aditivo<input class="gs-tube" data-i="${i}" placeholder="Tubo y aditivo"></label><label>Preparación / ayuno<input class="gs-fasting" data-i="${i}" placeholder="Indicaciones al paciente"></label></div><label>Observaciones / dudas<textarea class="gs-notes" data-i="${i}" rows="2" placeholder="Condiciones preanalíticas, inconsistencias o consultas"></textarea></label></fieldset>`).join('')}<button class="btn primary full" type="submit" id="submit-generated-response">Enviar resolución</button><p id="generated-submit-message" class="message"></p></form>`;
+ $('#generated-student-content').innerHTML=`<form id="generated-student-form"><label>Tu nombre${data.assigned_student_name?'':' (opcional)'}<input id="generated-student-name" maxlength="100" placeholder="Nombre y apellido" value="${escapeHTML(data.assigned_student_name||'')}" ${data.assigned_student_name?'required':''} ${data.is_individual?'readonly':''}></label><div class="notice">Pedido simulado para entrenamiento. No representa una orden médica real.</div><div class="generated-paper"><h3>ORDEN DE LABORATORIO</h3><p>Paciente: ____________________　Fecha: ____ / ____ / ______</p>${rows.map(r=>`<div class="generated-line"><b>${r.numero}.</b> ${escapeHTML(r.determinacion)}</div>`).join('')}</div><h3>Resolución del alumno</h3>${rows.map((r,i)=>`<fieldset class="generated-answer"><legend>Determinación ${i+1}: ${escapeHTML(r.determinacion)}</legend><div class="two-col"><label>Área<input class="gs-area" data-i="${i}" placeholder="Área del laboratorio"></label><label>Muestra<input class="gs-sample" data-i="${i}" placeholder="Muestra biológica"></label><label>Tubo / aditivo<input class="gs-tube" data-i="${i}" placeholder="Tubo y aditivo"></label><label>Preparación / ayuno<input class="gs-fasting" data-i="${i}" placeholder="Indicaciones al paciente"></label></div><label>Observaciones / dudas<textarea class="gs-notes" data-i="${i}" rows="2" placeholder="Condiciones preanalíticas, inconsistencias o consultas"></textarea></label></fieldset>`).join('')}<fieldset class="generated-answer"><legend>Orden de llenado · Sistema Vacutainer</legend><label>Indicá la secuencia de tubos según el orden de extracción<input id="gs-vacutainer-order" placeholder="Ej. Hemocultivos → citrato → suero → heparina → EDTA → fluoruro"></label><small>Escribí la secuencia que aplicarías. El docente la revisará junto con tu resolución.</small></fieldset><button class="btn primary full" type="submit" id="submit-generated-response">Enviar resolución</button><p id="generated-submit-message" class="message"></p></form>`;
  $('#generated-student-form').addEventListener('submit',async e=>{
-  e.preventDefault();const response=rows.map((r,i)=>({determinacion:r.determinacion,area:$(`.gs-area[data-i="${i}"]`).value.trim(),muestra:$(`.gs-sample[data-i="${i}"]`).value.trim(),tubo:$(`.gs-tube[data-i="${i}"]`).value.trim(),preparacion:$(`.gs-fasting[data-i="${i}"]`).value.trim(),observaciones:$(`.gs-notes[data-i="${i}"]`).value.trim()}));
+  e.preventDefault();const vacutainerOrder=$('#gs-vacutainer-order').value.trim();const response=rows.map((r,i)=>({determinacion:r.determinacion,area:$(`.gs-area[data-i="${i}"]`).value.trim(),muestra:$(`.gs-sample[data-i="${i}"]`).value.trim(),tubo:$(`.gs-tube[data-i="${i}"]`).value.trim(),preparacion:$(`.gs-fasting[data-i="${i}"]`).value.trim(),observaciones:$(`.gs-notes[data-i="${i}"]`).value.trim(),orden_llenado_vacutainer:vacutainerOrder}));
   const b=$('#submit-generated-response');b.disabled=true;b.textContent='Enviando…';
   const {data:result,error:submitError}=await sb.rpc('glp_submit_generated_order',{p_token:token,p_student_name:$('#generated-student-name').value.trim()||'Alumno',p_response:response});
   b.disabled=false;b.textContent='Enviar resolución';
@@ -587,7 +611,7 @@ async function showGeneratedFeedback(code,hostSelector='#generated-feedback-resu
   host.innerHTML=`<div class="notice"><b>Tu entrega todavía está pendiente de corrección.</b><p>Cuando el docente publique la nota, vas a poder consultar aquí el resultado usando el mismo código.</p></div>`;return;
  }
  const response=Array.isArray(data.response)?data.response:[],expected=Array.isArray(data.answer_key)?data.answer_key:[],grades=Array.isArray(data.item_grades)?data.item_grades:[];
- host.innerHTML=`<div class="result"><h3>Corrección publicada</h3><p><b>Nota final: ${escapeHTML(data.teacher_grade)}/100</b></p><p>${escapeHTML(data.teacher_feedback||'Sin devolución general.')}</p><small>Entregado: ${new Date(data.submitted_at).toLocaleString('es-AR')}</small></div>`+response.map((r,i)=>{const k=expected[i]||{};return `<article class="generated-grade-item"><h4>${i+1}. ${escapeHTML(r.determinacion||'Determinación')} · ${escapeHTML(grades[i]??'—')}/100</h4><div class="two-col"><div><b>Tu respuesta</b><p>Área: ${escapeHTML(r.area||'—')}<br>Muestra: ${escapeHTML(r.muestra||'—')}<br>Tubo/aditivo: ${escapeHTML(r.tubo||'—')}<br>Preparación: ${escapeHTML(r.preparacion||'—')}<br>Observaciones: ${escapeHTML(r.observaciones||'—')}</p></div><div><b>Respuesta esperada</b><p>Área: ${escapeHTML(k.area||'No especificada')}<br>Muestra: ${escapeHTML(k.muestra||'No especificada')}<br>Tubo: ${escapeHTML(k.tubo||'No especificado')}<br>Aditivo: ${escapeHTML(k.aditivo||'No especificado')}<br>Ayuno: ${escapeHTML(k.ayuno||'No especificado')}<br>Toma: ${escapeHTML(k.toma||'No especificada')}<br>Procesamiento: ${escapeHTML(k.procesamiento||'No especificado')}<br>Condiciones: ${escapeHTML(k.condiciones||'No especificadas')}</p></div></div></article>`}).join('');
+ host.innerHTML=`<div class="result"><h3>Corrección publicada</h3><p><b>Nota final: ${escapeHTML(data.teacher_grade)}/100</b></p><p>${escapeHTML(data.teacher_feedback||'Sin devolución general.')}</p><small>Entregado: ${new Date(data.submitted_at).toLocaleString('es-AR')}</small></div>${response[0]?.orden_llenado_vacutainer?`<div class="notice"><b>Tu orden de llenado Vacutainer</b><p>${escapeHTML(response[0].orden_llenado_vacutainer)}</p></div>`:''}`+response.map((r,i)=>{const k=expected[i]||{};return `<article class="generated-grade-item"><h4>${i+1}. ${escapeHTML(r.determinacion||'Determinación')} · ${escapeHTML(grades[i]??'—')}/100</h4><div class="two-col"><div><b>Tu respuesta</b><p>Área: ${escapeHTML(r.area||'—')}<br>Muestra: ${escapeHTML(r.muestra||'—')}<br>Tubo/aditivo: ${escapeHTML(r.tubo||'—')}<br>Preparación: ${escapeHTML(r.preparacion||'—')}<br>Observaciones: ${escapeHTML(r.observaciones||'—')}</p></div><div><b>Respuesta esperada</b><p>Área: ${escapeHTML(k.area||'No especificada')}<br>Muestra: ${escapeHTML(k.muestra||'No especificada')}<br>Tubo: ${escapeHTML(k.tubo||'No especificado')}<br>Aditivo: ${escapeHTML(k.aditivo||'No especificado')}<br>Ayuno: ${escapeHTML(k.ayuno||'No especificado')}<br>Toma: ${escapeHTML(k.toma||'No especificada')}<br>Procesamiento: ${escapeHTML(k.procesamiento||'No especificado')}<br>Condiciones: ${escapeHTML(k.condiciones||'No especificadas')}</p></div></div></article>`}).join('');
 }
 $('#generated-feedback-form').addEventListener('submit',async e=>{e.preventDefault();const code=$('#generated-feedback-code').value.trim().toUpperCase();if(code.length!==10){msg('#generated-feedback-result','El código debe tener 10 caracteres.');return}await showGeneratedFeedback(code)});
 $('#home-feedback-form').addEventListener('submit',async e=>{e.preventDefault();const code=$('#home-feedback-code').value.trim().toUpperCase();if(code.length!==10){msg('#home-feedback-result','El código debe tener 10 caracteres.');return}await showGeneratedFeedback(code,'#home-feedback-result');});
@@ -602,14 +626,8 @@ async function openRandomSession(sessionToken){
   e.preventDefault();const name=$('#random-session-name').value.trim();if(!name){msg('#random-session-message','Ingresá tu nombre.');return}
   const key=makeClientKey(sessionToken,name),b=form.querySelector('button');b.disabled=true;b.textContent='Preparando pedido…';
   let assignment=null,assignmentError=null;
-  for(let attempt=0;attempt<8;attempt++){
-   const rows=randomUniqueRows(Number(session.item_count));if(rows.length!==Number(session.item_count)){assignmentError={message:'No hay suficientes determinaciones completas para generar el pedido.'};break}
-   const {orderData,answerKey}=buildOrderPayload(rows);
-   const result=await sb.rpc('glp_create_random_assignment',{p_session_token:sessionToken,p_student_name:name,p_client_key:key,p_order_data:orderData,p_answer_key:answerKey});
-   assignment=result.data;assignmentError=result.error;
-   if(!assignmentError)break;
-   if(assignmentError.code!=='23505'||!String(assignmentError.message||'').includes('glp_generated_orders_session_orderdata_uidx'))break;
-  }
+  const result=await sb.rpc('glp_create_random_assignment',{p_session_token:sessionToken,p_student_name:name,p_client_key:key});
+  assignment=result.data;assignmentError=result.error;
   if(assignmentError||!assignment){b.disabled=false;b.textContent='Generar mi pedido';msg('#random-session-message','No se pudo generar el pedido: '+(assignmentError?.message||'Intentá nuevamente.'));return}
   localStorage.setItem('glp_random_name_'+sessionToken,name);
   location.href=`${location.origin}${location.pathname}?pedido=${encodeURIComponent(assignment.token)}`;
@@ -625,5 +643,5 @@ async function initGeneratedOrderMode(){
 $('#generator-login-note').hidden=admin;
 $('#generator-workspace').hidden=!admin;
 const oldRefreshAdmin=refreshAdmin;
-refreshAdmin=async function(){await oldRefreshAdmin();$('#generator-login-note').hidden=admin;$('#generator-workspace').hidden=!admin;if(admin)loadGeneratedOrders()};
+refreshAdmin=async function(){await oldRefreshAdmin();$('#generator-login-note').hidden=admin;$('#generator-workspace').hidden=!admin;if(admin){loadGeneratedOrders();loadAcademicRegister()}};
 initGeneratedOrderMode();
