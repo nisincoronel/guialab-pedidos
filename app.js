@@ -436,20 +436,56 @@ function randomUniqueRows(count){
 function orderDisplayRow(r,i){
  return {numero:i+1,determinacion:r["Determinación"]||"",grupo:r["Grupo"]||"",sector:r["Sector"]||"",muestra:r["Muestra"]||"",tubo:r["Tubo"]||"",aditivo:r["Aditivo"]||""};
 }
+function buildOrderPayload(rows){
+ const orderData=rows.map(orderDisplayRow);
+ const answerKey=rows.map(r=>({determinacion:r["Determinación"]||"",area:r["Sector"]||r["Grupo"]||"",muestra:r["Muestra"]||"",tubo:r["Tubo"]||"",aditivo:r["Aditivo"]||"",ayuno:r["Ayuno"]||"",toma:r["Toma"]||"",procesamiento:r["Procesamiento"]||"",condiciones:r["Condiciones especiales"]||"",observaciones:r["Observaciones"]||""}));
+ return {orderData,answerKey};
+}
+function makeClientKey(sessionToken,studentName){
+ const nameKey=norm(studentName).replace(/[^a-z0-9]+/g,'_').slice(0,60)||'alumno';
+ const keyName='glp_random_assignment_'+sessionToken+'_'+nameKey;
+ let key=localStorage.getItem(keyName);
+ if(!key){key=(crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`);localStorage.setItem(keyName,key)}
+ return key;
+}
+async function exportAllGeneratedGrades(){
+ const {data,error}=await sb.rpc('glp_admin_export_all_generated_grades');
+ if(error){alert('No se pudieron exportar las calificaciones: '+error.message+' Aplicá migration_1_12.sql.');return}
+ const rows=data||[];
+ if(!rows.length){alert('Todavía no hay entregas para exportar.');return}
+ const fields=['Actividad','Modalidad','Alumno','Fecha de entrega','Estado de corrección','Nota del pedido (0-100)','Nota presencial (0-100)','Código de seguimiento','Devolución docente'];
+ const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+ const csv='\ufeff'+[fields.map(quote).join(';'),...rows.map(r=>[r.activity_title,r.order_type,r.student_name,r.submitted_at?new Date(r.submitted_at).toLocaleString('es-AR'):'',r.review_status==='graded'?'Corregida':'Pendiente',r.order_grade,r.practical_grade,r.access_code,r.teacher_feedback].map(quote).join(';'))].join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='guialab_registro_general_calificaciones.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+$('#export-all-generated-grades')?.addEventListener('click',exportAllGeneratedGrades);
+
 async function loadGeneratedOrders(){
  if(!admin||!sb)return;
  const host=$('#generated-orders-list');host.textContent='Cargando…';
+ const sessionsHost=$('#random-sessions-list');
+ const {data:sessions,error:sessionError}=await sb.rpc('glp_admin_list_random_sessions');
+ if(sessionsHost){if(sessionError)sessionsHost.innerHTML=`<small>No se pudieron cargar las comisiones: ${escapeHTML(sessionError.message)}</small>`;else sessionsHost.innerHTML=(sessions||[]).length?sessions.map(x=>`<article class="admin-item"><b>${escapeHTML(x.title)}</b><small>${x.assignment_count} pedidos individuales · ${escapeHTML(x.difficulty)} · ${x.status==='active'?'Enlace activo':'Cerrado'}</small><small>Enlace: <code>?grupo=${escapeHTML(x.token)}</code></small><div class="actions"><button type="button" class="btn secondary" data-copy-session="${escapeHTML(x.token)}">Copiar enlace</button><button type="button" class="btn secondary" data-export-session="${x.id}" data-session-title="${escapeHTML(x.title)}">Exportar alumnos y códigos</button><button type="button" class="btn secondary" data-toggle-session="${x.id}" data-next="${x.status==='active'?'closed':'active'}">${x.status==='active'?'Cerrar enlace':'Reabrir enlace'}</button><button type="button" class="btn secondary" data-delete-session="${x.id}" data-session-title="${escapeHTML(x.title)}">Eliminar comisión</button></div></article>`).join(''):'<small>Todavía no creaste enlaces de comisión.</small>';sessionsHost.querySelectorAll('[data-copy-session]').forEach(b=>{const url=`${location.origin}${location.pathname}?grupo=${encodeURIComponent(b.dataset.copySession)}`;b.addEventListener('click',()=>navigator.clipboard.writeText(url).then(()=>alert('Enlace copiado')).catch(()=>prompt('Copiá el enlace',url)))});sessionsHost.querySelectorAll('[data-export-session]').forEach(b=>b.addEventListener('click',()=>exportRandomSession(b.dataset.exportSession,b.dataset.sessionTitle)));sessionsHost.querySelectorAll('[data-toggle-session]').forEach(b=>b.addEventListener('click',async()=>{const {error}=await sb.rpc('glp_admin_set_random_session_status',{p_id:b.dataset.toggleSession,p_status:b.dataset.next});if(error)alert(error.message);else loadGeneratedOrders()}));sessionsHost.querySelectorAll('[data-delete-session]').forEach(b=>b.addEventListener('click',async()=>{if(!confirm(`¿Eliminar definitivamente la comisión «${b.dataset.sessionTitle}»? Se borrarán también todos los pedidos individuales y sus entregas, respuestas, correcciones y códigos de seguimiento. Esta acción no se puede deshacer.`))return;const {error}=await sb.rpc('glp_admin_delete_random_session',{p_id:b.dataset.deleteSession});if(error){alert('No se pudo eliminar la comisión: '+error.message);return}alert('Comisión y datos asociados eliminados.');loadGeneratedOrders()}));}
  const {data,error}=await sb.rpc('glp_admin_list_generated_orders');
  if(error){host.textContent='No se pudieron cargar los pedidos. Aplicá migration_1_7.sql en Supabase. '+error.message;return}
  if(!data?.length){host.innerHTML='<div class="empty">Todavía no generaste pedidos.</div>';return}
  host.innerHTML=data.map(o=>{
   const url=`${location.origin}${location.pathname}?pedido=${encodeURIComponent(o.token)}`;
-  return `<article class="admin-item"><b>${escapeHTML(o.title)}</b><small>${escapeHTML(o.difficulty)} · ${o.item_count} determinaciones · ${o.submission_count} entregas · ${o.status==='active'?'Activo':'Cerrado'}</small><small>Token: <code>${escapeHTML(o.token)}</code></small><div class="actions"><button class="btn primary" data-review-generated="${o.id}" data-title="${escapeHTML(o.title)}">Ver entregas (${o.submission_count})</button><button class="btn secondary" data-copy-generated="${escapeHTML(url)}">Copiar enlace</button><button class="btn secondary" data-copy-token="${escapeHTML(o.token)}">Copiar token</button><button class="btn secondary" data-toggle-generated="${o.id}" data-next="${o.status==='active'?'closed':'active'}">${o.status==='active'?'Cerrar':'Reabrir'}</button></div><div id="generated-review-${o.id}" class="generated-review" hidden></div></article>`;
+  return `<article class="admin-item"><b>${escapeHTML(o.title)}</b><small>${o.session_id?'Pedido individual · '+escapeHTML(o.assigned_student_name||'Alumno'): 'Pedido compartido'} · ${escapeHTML(o.difficulty)} · ${o.item_count} determinaciones · ${o.submission_count} entregas · ${o.status==='active'?'Activo':'Cerrado'}</small><small>Token: <code>${escapeHTML(o.token)}</code></small><div class="actions"><button class="btn primary" data-review-generated="${o.id}" data-title="${escapeHTML(o.title)}">Ver entregas (${o.submission_count})</button><button class="btn secondary" data-copy-generated="${escapeHTML(url)}">Copiar enlace</button><button class="btn secondary" data-copy-token="${escapeHTML(o.token)}">Copiar token</button><button class="btn secondary" data-toggle-generated="${o.id}" data-next="${o.status==='active'?'closed':'active'}">${o.status==='active'?'Cerrar':'Reabrir'}</button><button class="btn secondary" data-delete-generated="${o.id}" data-order-title="${escapeHTML(o.title)}">Eliminar pedido</button></div><div id="generated-review-${o.id}" class="generated-review" hidden></div></article>`;
  }).join('');
  $$('[data-review-generated]').forEach(b=>b.addEventListener('click',()=>loadGeneratedSubmissions(b.dataset.reviewGenerated,b.dataset.title)));
  $$('[data-copy-generated]').forEach(b=>b.addEventListener('click',()=>navigator.clipboard.writeText(b.dataset.copyGenerated).then(()=>alert('Enlace copiado')).catch(()=>prompt('Copiá el enlace',b.dataset.copyGenerated))));
  $$('[data-copy-token]').forEach(b=>b.addEventListener('click',()=>navigator.clipboard.writeText(b.dataset.copyToken).then(()=>alert('Token copiado')).catch(()=>prompt('Copiá el token',b.dataset.copyToken))));
  $$('[data-toggle-generated]').forEach(b=>b.addEventListener('click',async()=>{const {error}=await sb.rpc('glp_admin_set_generated_order_status',{p_id:b.dataset.toggleGenerated,p_status:b.dataset.next});if(error)alert(error.message);else loadGeneratedOrders()}));
+ $$('[data-delete-generated]').forEach(b=>b.addEventListener('click',async()=>{if(!confirm(`¿Eliminar definitivamente «${b.dataset.orderTitle}»? También se borrarán todas sus entregas, respuestas, correcciones y códigos de seguimiento. Esta acción no se puede deshacer.`))return;const {error}=await sb.rpc('glp_admin_delete_generated_order',{p_id:b.dataset.deleteGenerated});if(error){alert('No se pudo eliminar el pedido: '+error.message);return}alert('Pedido y entregas asociadas eliminados.');loadGeneratedOrders()}));
+}
+async function exportRandomSession(sessionId,title){
+ const {data,error}=await sb.rpc('glp_admin_export_random_session',{p_session_id:sessionId});
+ if(error){alert('No se pudo exportar la lista: '+error.message);return}
+ const rows=data||[],fields=['Alumno','Codigo de seguimiento','Estado','Calificacion','Fecha de entrega'];
+ const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+ const csv='\ufeff'+[fields.map(quote).join(';'),...rows.map(r=>[r.student_name,r.access_code,r.review_status==='graded'?'Corregida':r.submitted_at?'Pendiente de correccion':'Sin entregar',r.teacher_grade,r.submitted_at?new Date(r.submitted_at).toLocaleString('es-AR'):''].map(quote).join(';'))].join('\r\n');
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=String(title||'comision').replace(/[^a-z0-9_-]+/gi,'_')+'_alumnos_codigos.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 }
 async function loadGeneratedSubmissions(orderId,title){
  const host=$(`#generated-review-${orderId}`);host.hidden=false;host.innerHTML='<p>Cargando entregas…</p>';
@@ -459,17 +495,25 @@ async function loadGeneratedSubmissions(orderId,title){
  host.innerHTML=`<h3>Entregas · ${escapeHTML(title)}</h3>`+data.map((sub)=>{
   const response=Array.isArray(sub.response)?sub.response:[];const expected=Array.isArray(sub.answer_key)?sub.answer_key:[];
   const reviewed=sub.review_status==='graded';
-  return `<section class="generated-submission" data-submission="${sub.id}"><div class="admin-toolbar"><div><b>${escapeHTML(sub.student_name)}</b><small>${new Date(sub.submitted_at).toLocaleString('es-AR')} · ${reviewed?'Corregida':'Pendiente de corrección'}${reviewed&&sub.teacher_grade!==null?' · Nota '+sub.teacher_grade+'/100':''}</small></div><button type="button" class="btn secondary" data-open-generated-submission="${sub.id}">${reviewed?'Ver / editar corrección':'Corregir entrega'}</button></div><div id="generated-grade-${sub.id}" hidden><div class="generated-grade-items">${response.map((r,i)=>{const k=expected[i]||{};return `<article class="generated-grade-item"><h4>${i+1}. ${escapeHTML(r.determinacion||k.determinacion||'Determinación')}</h4><div class="two-col"><div><b>Respuesta del alumno</b><p>Área: ${escapeHTML(r.area||'—')}<br>Muestra: ${escapeHTML(r.muestra||'—')}<br>Tubo/aditivo: ${escapeHTML(r.tubo||'—')}<br>Preparación: ${escapeHTML(r.preparacion||'—')}<br>Observaciones: ${escapeHTML(r.observaciones||'—')}</p></div><div><b>Clave esperada</b><p>Área: ${escapeHTML(k.area||'No cargada')}<br>Muestra: ${escapeHTML(k.muestra||'No cargada')}<br>Tubo: ${escapeHTML(k.tubo||'No cargado')}<br>Aditivo: ${escapeHTML(k.aditivo||'No cargado')}<br>Ayuno: ${escapeHTML(k.ayuno||'No especificado')}<br>Toma: ${escapeHTML(k.toma||'No especificada')}<br>Procesamiento: ${escapeHTML(k.procesamiento||'No especificado')}<br>Condiciones: ${escapeHTML(k.condiciones||'No especificadas')}</p></div></div><label>Puntaje de esta determinación (0 a 100)<input class="generated-item-score" type="number" min="0" max="100" step="1" value="${escapeHTML((sub.item_grades||{})[i]??'')}" data-index="${i}"></label></article>`}).join('')}</div><label>Devolución general<textarea class="generated-teacher-feedback" rows="3" placeholder="Fortalezas, errores y aspectos a mejorar…">${escapeHTML(sub.teacher_feedback||'')}</textarea></label><div class="actions"><button type="button" class="btn primary" data-save-generated-grade="${sub.id}">Guardar y publicar corrección</button></div><p class="message" id="generated-grade-message-${sub.id}"></p></div></section>`;
+  return `<section class="generated-submission" data-submission="${sub.id}"><div class="admin-toolbar"><div><b>${escapeHTML(sub.student_name)}</b><small>${new Date(sub.submitted_at).toLocaleString('es-AR')} · ${reviewed?'Corregida':'Pendiente de corrección'}${reviewed&&sub.teacher_grade!==null?' · Nota '+sub.teacher_grade+'/100':''}</small>${sub.access_code?`<small>Código del alumno: <code>${escapeHTML(sub.access_code)}</code> <button type="button" class="btn secondary" data-copy-access="${escapeHTML(sub.access_code)}">Copiar código</button></small>`:''}</div><button type="button" class="btn secondary" data-open-generated-submission="${sub.id}">${reviewed?'Ver / editar corrección':'Corregir entrega'}</button></div><div id="generated-grade-${sub.id}" hidden><div class="generated-grade-items">${response.map((r,i)=>{const k=expected[i]||{};return `<article class="generated-grade-item"><h4>${i+1}. ${escapeHTML(r.determinacion||k.determinacion||'Determinación')}</h4><div class="two-col"><div><b>Respuesta del alumno</b><p>Área: ${escapeHTML(r.area||'—')}<br>Muestra: ${escapeHTML(r.muestra||'—')}<br>Tubo/aditivo: ${escapeHTML(r.tubo||'—')}<br>Preparación: ${escapeHTML(r.preparacion||'—')}<br>Observaciones: ${escapeHTML(r.observaciones||'—')}</p></div><div><b>Clave esperada</b><p>Área: ${escapeHTML(k.area||'No cargada')}<br>Muestra: ${escapeHTML(k.muestra||'No cargada')}<br>Tubo: ${escapeHTML(k.tubo||'No cargado')}<br>Aditivo: ${escapeHTML(k.aditivo||'No cargado')}<br>Ayuno: ${escapeHTML(k.ayuno||'No especificado')}<br>Toma: ${escapeHTML(k.toma||'No especificada')}<br>Procesamiento: ${escapeHTML(k.procesamiento||'No especificado')}<br>Condiciones: ${escapeHTML(k.condiciones||'No especificadas')}</p></div></div><label>Puntaje de esta determinación (0 a 100)<input class="generated-item-score" type="number" min="0" max="100" step="1" value="${escapeHTML((sub.item_grades||{})[i]??'')}" data-index="${i}"></label></article>`}).join('')}</div><label>Devolución general<textarea class="generated-teacher-feedback" rows="3" placeholder="Fortalezas, errores y aspectos a mejorar…">${escapeHTML(sub.teacher_feedback||'')}</textarea></label><div class="form-card"><h4>Calificación presencial (opcional)</h4><p class="muted">Campo independiente de la nota del pedido. Completalo después de evaluar al alumno presencialmente.</p><label>Nota presencial (0 a 100)<input class="generated-practical-grade" type="number" min="0" max="100" step="0.5" placeholder="Dejar vacío si todavía no fue evaluado" value="${sub.practical_grade??''}"></label></div><div class="actions"><button type="button" class="btn primary" data-save-generated-grade="${sub.id}">Guardar y publicar corrección</button></div><p class="message" id="generated-grade-message-${sub.id}"></p></div></section>`;
  }).join('');
  host.querySelectorAll('[data-open-generated-submission]').forEach(b=>b.addEventListener('click',()=>{const panel=$(`#generated-grade-${b.dataset.openGeneratedSubmission}`);panel.hidden=!panel.hidden;}));
+ host.querySelectorAll('[data-copy-access]').forEach(b=>b.addEventListener('click',()=>navigator.clipboard.writeText(b.dataset.copyAccess).then(()=>alert('Código copiado')).catch(()=>prompt('Copiá el código',b.dataset.copyAccess))));
  host.querySelectorAll('[data-save-generated-grade]').forEach(b=>b.addEventListener('click',async()=>{
   const id=b.dataset.saveGeneratedGrade,card=b.closest('.generated-submission'),scores=[...card.querySelectorAll('.generated-item-score')].map(x=>x.value.trim()===''?null:Number(x.value));
   if(scores.some(x=>x===null||!Number.isFinite(x)||x<0||x>100)){msg(`#generated-grade-message-${id}`,'Completá un puntaje válido de 0 a 100 para cada determinación.');return}
   const feedback=card.querySelector('.generated-teacher-feedback').value.trim();b.disabled=true;b.textContent='Guardando…';
   const {data:result,error:saveError}=await sb.rpc('glp_admin_grade_generated_submission',{p_submission_id:id,p_item_grades:scores,p_teacher_feedback:feedback});
+  if(saveError){b.disabled=false;b.textContent='Guardar y publicar corrección';msg(`#generated-grade-message-${id}`,'No se pudo guardar: '+saveError.message);return}
+  const practicalRaw=card.querySelector('.generated-practical-grade').value.trim();
+  const practical=practicalRaw===''?null:Number(practicalRaw);
+  if(practical!==null&&(!Number.isFinite(practical)||practical<0||practical>100)){
+   b.disabled=false;b.textContent='Guardar y publicar corrección';msg(`#generated-grade-message-${id}`,'La nota presencial debe estar entre 0 y 100. La corrección del pedido sí quedó guardada.');return;
+  }
+  const {error:practicalError}=await sb.rpc('glp_admin_set_practical_grade',{p_submission_id:id,p_practical_grade:practical});
   b.disabled=false;b.textContent='Guardar y publicar corrección';
-  if(saveError){msg(`#generated-grade-message-${id}`,'No se pudo guardar: '+saveError.message);return}
-  msg(`#generated-grade-message-${id}`,`Corrección publicada: ${result.teacher_grade}/100.`);await loadGeneratedSubmissions(orderId,title);
+  if(practicalError){msg(`#generated-grade-message-${id}`,'La corrección del pedido se guardó, pero no la nota presencial: '+practicalError.message);return}
+  msg(`#generated-grade-message-${id}`,`Corrección publicada: ${result.teacher_grade}/100. Nota presencial: ${practical===null?'sin cargar':practical+'/100'}.`);await loadGeneratedSubmissions(orderId,title);
  }));
 }
 
@@ -478,13 +522,7 @@ $('#generated-order-form').addEventListener('submit',async e=>{
  if(!determinationCatalog.length){msg('#generated-order-message','No se pudo cargar determinaciones.json. Verificá que esté en la raíz del sitio.');return}
  const count=Number($('#generated-count').value),rows=randomUniqueRows(count);
  if(rows.length!==count){msg('#generated-order-message','La base no tiene suficientes determinaciones.');return}
- const orderData=rows.map(orderDisplayRow);
- const answerKey=rows.map(r=>({
-  determinacion:r["Determinación"]||"",area:r["Sector"]||r["Grupo"]||"",
-  muestra:r["Muestra"]||"",tubo:r["Tubo"]||"",aditivo:r["Aditivo"]||"",
-  ayuno:r["Ayuno"]||"",toma:r["Toma"]||"",procesamiento:r["Procesamiento"]||"",
-  condiciones:r["Condiciones especiales"]||"",observaciones:r["Observaciones"]||""
- }));
+ const {orderData,answerKey}=buildOrderPayload(rows);
  const expiry=$('#generated-expiry').value?new Date($('#generated-expiry').value).toISOString():null;
  const btn=$('#generate-order-button');btn.disabled=true;btn.textContent='Generando…';msg('#generated-order-message','');
  const {data,error}=await sb.rpc('glp_create_generated_order',{
@@ -503,6 +541,20 @@ $('#generated-order-form').addEventListener('submit',async e=>{
  msg('#generated-order-message','Pedido creado. Compartí el enlace o el token con tus alumnos.');
  await loadGeneratedOrders();
 });
+$('#generated-session-form').addEventListener('submit',async e=>{
+ e.preventDefault();if(!sb||!admin){msg('#generated-session-message','Necesitás iniciar sesión como docente.');return}
+ if(!determinationCatalog.length){msg('#generated-session-message','No se pudo cargar el catálogo de determinaciones.');return}
+ const expiry=$('#session-expiry').value?new Date($('#session-expiry').value).toISOString():null;
+ const btn=$('#generate-session-button');btn.disabled=true;btn.textContent='Creando enlace…';msg('#generated-session-message','');
+ const {data,error}=await sb.rpc('glp_create_random_session',{p_title:$('#session-title').value.trim()||'Actividad individual',p_instructions:$('#session-instructions').value.trim(),p_difficulty:$('#session-difficulty').value,p_item_count:Number($('#session-count').value),p_expires_at:expiry});
+ btn.disabled=false;btn.textContent='Crear enlace de pedidos individuales';
+ if(error){msg('#generated-session-message','No se pudo crear el enlace: '+error.message+' · Ejecutá migration_1_10.sql en Supabase.');return}
+ const url=`${location.origin}${location.pathname}?grupo=${encodeURIComponent(data.token)}`;
+ $('#generated-session-result').hidden=false;
+ $('#generated-session-result').innerHTML=`<h3>Enlace de comisión creado</h3><p>Compartí este mismo enlace con todos. Cada alumno recibirá un pedido aleatorio diferente al ingresar.</p><label>Enlace para toda la comisión<input readonly id="new-session-url" value="${escapeHTML(url)}"></label><div class="actions"><button type="button" class="btn primary" id="copy-session-url">Copiar enlace de comisión</button><a class="btn secondary" target="_blank" rel="noopener" href="${escapeHTML(url)}">Probar como alumno</a></div><p class="muted">${data.item_count} determinaciones por alumno · ${escapeHTML($('#session-difficulty').value)} · Vencimiento ${expiry?new Date(expiry).toLocaleString('es-AR'):'sin vencimiento'}</p>`;
+ $('#copy-session-url').addEventListener('click',()=>navigator.clipboard.writeText(url).then(()=>msg('#generated-session-message','Enlace de comisión copiado.')).catch(()=>prompt('Copiá el enlace',url)));
+ msg('#generated-session-message','Enlace creado. Cada alumno tendrá un pedido y una clave esperada propios.');await loadGeneratedOrders();
+});
 $('#reload-generated-orders').addEventListener('click',loadGeneratedOrders);
 async function openGeneratedOrder(token){
  if(!sb){$('#generated-student-content').textContent='No se pudo conectar con el servidor.';return}
@@ -513,20 +565,62 @@ async function openGeneratedOrder(token){
  $('#generated-student-instructions').textContent=data.instructions||'Completá la resolución de este pedido simulado.';
  $('#generated-student-meta').textContent=`${data.item_count} determinaciones · ${data.difficulty}`;
  const rows=data.order_data||[];
- $('#generated-student-content').innerHTML=`<form id="generated-student-form"><label>Tu nombre (opcional)<input id="generated-student-name" maxlength="100" placeholder="Nombre y apellido"></label><div class="notice">Pedido simulado para entrenamiento. No representa una orden médica real.</div><div class="generated-paper"><h3>ORDEN DE LABORATORIO</h3><p>Paciente: ____________________　Fecha: ____ / ____ / ______</p>${rows.map(r=>`<div class="generated-line"><b>${r.numero}.</b> ${escapeHTML(r.determinacion)}</div>`).join('')}</div><h3>Resolución del alumno</h3>${rows.map((r,i)=>`<fieldset class="generated-answer"><legend>Determinación ${i+1}: ${escapeHTML(r.determinacion)}</legend><div class="two-col"><label>Área<input class="gs-area" data-i="${i}" placeholder="Área del laboratorio"></label><label>Muestra<input class="gs-sample" data-i="${i}" placeholder="Muestra biológica"></label><label>Tubo / aditivo<input class="gs-tube" data-i="${i}" placeholder="Tubo y aditivo"></label><label>Preparación / ayuno<input class="gs-fasting" data-i="${i}" placeholder="Indicaciones al paciente"></label></div><label>Observaciones / dudas<textarea class="gs-notes" data-i="${i}" rows="2" placeholder="Condiciones preanalíticas, inconsistencias o consultas"></textarea></label></fieldset>`).join('')}<button class="btn primary full" type="submit" id="submit-generated-response">Enviar resolución</button><p id="generated-submit-message" class="message"></p></form>`;
+ $('#generated-student-content').innerHTML=`<form id="generated-student-form"><label>Tu nombre${data.assigned_student_name?'':' (opcional)'}<input id="generated-student-name" maxlength="100" placeholder="Nombre y apellido" value="${escapeHTML(data.assigned_student_name||'')}" ${data.assigned_student_name?'required':''}></label><div class="notice">Pedido simulado para entrenamiento. No representa una orden médica real.</div><div class="generated-paper"><h3>ORDEN DE LABORATORIO</h3><p>Paciente: ____________________　Fecha: ____ / ____ / ______</p>${rows.map(r=>`<div class="generated-line"><b>${r.numero}.</b> ${escapeHTML(r.determinacion)}</div>`).join('')}</div><h3>Resolución del alumno</h3>${rows.map((r,i)=>`<fieldset class="generated-answer"><legend>Determinación ${i+1}: ${escapeHTML(r.determinacion)}</legend><div class="two-col"><label>Área<input class="gs-area" data-i="${i}" placeholder="Área del laboratorio"></label><label>Muestra<input class="gs-sample" data-i="${i}" placeholder="Muestra biológica"></label><label>Tubo / aditivo<input class="gs-tube" data-i="${i}" placeholder="Tubo y aditivo"></label><label>Preparación / ayuno<input class="gs-fasting" data-i="${i}" placeholder="Indicaciones al paciente"></label></div><label>Observaciones / dudas<textarea class="gs-notes" data-i="${i}" rows="2" placeholder="Condiciones preanalíticas, inconsistencias o consultas"></textarea></label></fieldset>`).join('')}<button class="btn primary full" type="submit" id="submit-generated-response">Enviar resolución</button><p id="generated-submit-message" class="message"></p></form>`;
  $('#generated-student-form').addEventListener('submit',async e=>{
   e.preventDefault();const response=rows.map((r,i)=>({determinacion:r.determinacion,area:$(`.gs-area[data-i="${i}"]`).value.trim(),muestra:$(`.gs-sample[data-i="${i}"]`).value.trim(),tubo:$(`.gs-tube[data-i="${i}"]`).value.trim(),preparacion:$(`.gs-fasting[data-i="${i}"]`).value.trim(),observaciones:$(`.gs-notes[data-i="${i}"]`).value.trim()}));
   const b=$('#submit-generated-response');b.disabled=true;b.textContent='Enviando…';
   const {data:result,error:submitError}=await sb.rpc('glp_submit_generated_order',{p_token:token,p_student_name:$('#generated-student-name').value.trim()||'Alumno',p_response:response});
   b.disabled=false;b.textContent='Enviar resolución';
   if(submitError){msg('#generated-submit-message','No se pudo enviar: '+submitError.message);return}
-  $('#generated-student-content').innerHTML=`<div class="result"><h3>Entrega registrada</h3><p>Tu resolución fue guardada correctamente.</p><p>El docente revisará las respuestas de área, muestra, tubo/aditivo y condiciones preanalíticas. La calificación y devolución estarán disponibles cuando termine la corrección.</p></div>`;
+  const followUrl=`${location.origin}${location.pathname}?devolucion=${encodeURIComponent(result.access_code)}`;
+  $('#generated-student-content').innerHTML=`<div class="result"><h3>Entrega registrada</h3><p>Tu resolución fue guardada correctamente.</p><p>Guardá este código: lo vas a necesitar para consultar tu corrección.</p><div class="tracking-code">${escapeHTML(result.access_code)}</div><button type="button" class="btn secondary" id="copy-generated-access-code">Copiar código</button><p><a href="${escapeHTML(followUrl)}">Abrir consulta de corrección</a></p><small>No compartas este código con otras personas: identifica tu entrega.</small></div>`;
+  $('#copy-generated-access-code').addEventListener('click',()=>navigator.clipboard.writeText(result.access_code).then(()=>msg('#generated-feedback-result','Código copiado.')).catch(()=>prompt('Copiá tu código',result.access_code)));
+  $('#generated-feedback-code').value=result.access_code;
+ });
+}
+async function showGeneratedFeedback(code,hostSelector='#generated-feedback-result'){
+ const host=$(hostSelector);host.innerHTML='<p class="muted">Buscando tu entrega…</p>';
+ const {data,error}=await sb.rpc('glp_get_generated_feedback',{p_access_code:String(code||'').trim().toUpperCase()});
+ if(error){host.innerHTML=`<p class="message">No se pudo consultar: ${escapeHTML(error.message)}</p>`;return}
+ if(!data||data.found===false){host.innerHTML='<p class="message">No encontramos una entrega con ese código. Revisá que tenga 10 caracteres.</p>';return}
+ if(data.review_status!=='graded'){
+  host.innerHTML=`<div class="notice"><b>Tu entrega todavía está pendiente de corrección.</b><p>Cuando el docente publique la nota, vas a poder consultar aquí el resultado usando el mismo código.</p></div>`;return;
+ }
+ const response=Array.isArray(data.response)?data.response:[],expected=Array.isArray(data.answer_key)?data.answer_key:[],grades=Array.isArray(data.item_grades)?data.item_grades:[];
+ host.innerHTML=`<div class="result"><h3>Corrección publicada</h3><p><b>Nota final: ${escapeHTML(data.teacher_grade)}/100</b></p><p>${escapeHTML(data.teacher_feedback||'Sin devolución general.')}</p><small>Entregado: ${new Date(data.submitted_at).toLocaleString('es-AR')}</small></div>`+response.map((r,i)=>{const k=expected[i]||{};return `<article class="generated-grade-item"><h4>${i+1}. ${escapeHTML(r.determinacion||'Determinación')} · ${escapeHTML(grades[i]??'—')}/100</h4><div class="two-col"><div><b>Tu respuesta</b><p>Área: ${escapeHTML(r.area||'—')}<br>Muestra: ${escapeHTML(r.muestra||'—')}<br>Tubo/aditivo: ${escapeHTML(r.tubo||'—')}<br>Preparación: ${escapeHTML(r.preparacion||'—')}<br>Observaciones: ${escapeHTML(r.observaciones||'—')}</p></div><div><b>Respuesta esperada</b><p>Área: ${escapeHTML(k.area||'No especificada')}<br>Muestra: ${escapeHTML(k.muestra||'No especificada')}<br>Tubo: ${escapeHTML(k.tubo||'No especificado')}<br>Aditivo: ${escapeHTML(k.aditivo||'No especificado')}<br>Ayuno: ${escapeHTML(k.ayuno||'No especificado')}<br>Toma: ${escapeHTML(k.toma||'No especificada')}<br>Procesamiento: ${escapeHTML(k.procesamiento||'No especificado')}<br>Condiciones: ${escapeHTML(k.condiciones||'No especificadas')}</p></div></div></article>`}).join('');
+}
+$('#generated-feedback-form').addEventListener('submit',async e=>{e.preventDefault();const code=$('#generated-feedback-code').value.trim().toUpperCase();if(code.length!==10){msg('#generated-feedback-result','El código debe tener 10 caracteres.');return}await showGeneratedFeedback(code)});
+$('#home-feedback-form').addEventListener('submit',async e=>{e.preventDefault();const code=$('#home-feedback-code').value.trim().toUpperCase();if(code.length!==10){msg('#home-feedback-result','El código debe tener 10 caracteres.');return}await showGeneratedFeedback(code,'#home-feedback-result');});
+async function openRandomSession(sessionToken){
+ if(!sb){$('#generated-student-content').textContent='No se pudo conectar con el servidor.';return}
+ go('pedido-generado');$('#generated-student-title').textContent='Actividad individual';$('#generated-student-instructions').textContent='Ingresá tu nombre para recibir un pedido aleatorio e individual.';$('#generated-student-meta').textContent='Evaluación por comisión';
+ const host=$('#generated-student-content');host.innerHTML='<div class="notice">Cada alumno recibe una combinación diferente. Si volvés a entrar desde este navegador, recuperarás el mismo pedido.</div><form id="random-session-entry"><label>Nombre y apellido<input id="random-session-name" maxlength="100" placeholder="Tu nombre y apellido" required></label><button class="btn primary full" type="submit">Generar mi pedido</button><p id="random-session-message" class="message"></p></form>';
+ const {data:session,error}=await sb.rpc('glp_get_random_session',{p_token:sessionToken});
+ if(error||!session?.found){host.innerHTML=`<p class="message">No se pudo abrir esta actividad: ${escapeHTML(error?.message||'Enlace inexistente o cerrado')}.</p>`;return}
+ $('#generated-student-title').textContent=session.title;$('#generated-student-instructions').textContent=session.instructions||'Completá la resolución de tu pedido individual.';$('#generated-student-meta').textContent=`${session.item_count} determinaciones · ${session.difficulty}`;
+ const form=$('#random-session-entry');form.addEventListener('submit',async e=>{
+  e.preventDefault();const name=$('#random-session-name').value.trim();if(!name){msg('#random-session-message','Ingresá tu nombre.');return}
+  const key=makeClientKey(sessionToken,name),b=form.querySelector('button');b.disabled=true;b.textContent='Preparando pedido…';
+  let assignment=null,assignmentError=null;
+  for(let attempt=0;attempt<8;attempt++){
+   const rows=randomUniqueRows(Number(session.item_count));if(rows.length!==Number(session.item_count)){assignmentError={message:'No hay suficientes determinaciones completas para generar el pedido.'};break}
+   const {orderData,answerKey}=buildOrderPayload(rows);
+   const result=await sb.rpc('glp_create_random_assignment',{p_session_token:sessionToken,p_student_name:name,p_client_key:key,p_order_data:orderData,p_answer_key:answerKey});
+   assignment=result.data;assignmentError=result.error;
+   if(!assignmentError)break;
+   if(assignmentError.code!=='23505'||!String(assignmentError.message||'').includes('glp_generated_orders_session_orderdata_uidx'))break;
+  }
+  if(assignmentError||!assignment){b.disabled=false;b.textContent='Generar mi pedido';msg('#random-session-message','No se pudo generar el pedido: '+(assignmentError?.message||'Intentá nuevamente.'));return}
+  localStorage.setItem('glp_random_name_'+sessionToken,name);
+  location.href=`${location.origin}${location.pathname}?pedido=${encodeURIComponent(assignment.token)}`;
  });
 }
 async function initGeneratedOrderMode(){
  await loadDeterminationCatalog();
- const token=new URLSearchParams(location.search).get('pedido');
+ const params=new URLSearchParams(location.search),token=params.get('pedido'),sessionToken=params.get('grupo'),accessCode=params.get('devolucion');
  if(token)await openGeneratedOrder(token);
+ else if(sessionToken)await openRandomSession(sessionToken);
+ else if(accessCode){go('pedido-generado');$('#generated-student-content').hidden=true;$('#generated-student-title').textContent='Consulta de corrección';$('#generated-student-instructions').textContent='Ingresá el código de seguimiento de tu entrega.';$('#generated-student-meta').textContent='Seguimiento';$('#generated-feedback-code').value=accessCode;await showGeneratedFeedback(accessCode)}
 }
 $('#generator-login-note').hidden=admin;
 $('#generator-workspace').hidden=!admin;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#07512f"><meta name="description" content="Plataforma educativa para practicar lectura de pedidos de laboratorio.">
-<title>GuiaLab Pedidos 1.9.0 | Formación</title>
+<title>GuiaLab Pedidos 2.0.0 | Formación</title>
 <link rel="icon" href="./logo-mark.png"><link rel="manifest" href="./manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
 <header class="topbar">
  <a class="brand" href="#inicio" aria-label="GuiaLab Formación y Capacitación Continua"><img src="./logo-formacion.png" alt="GuiaLab Formación y Capacitación Continua"></a>
  <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><a class="nav external-nav" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a><button class="nav" data-view="cuenta">Mi cuenta</button><button class="nav" data-view="docente">Gestión educativa</button><button class="nav" data-view="generador">Generador</button></nav>
- <span class="version">VERSIÓN 1.9.0</span>
+ <span class="version">VERSIÓN 2.0.0</span>
 </header>
 <main>
 <section id="view-inicio" class="view active">
@@ -30,6 +30,10 @@
   <article><span class="tile-icon">02</span><h3>Lectura crítica</h3><p>Reconocé abreviaturas, ambigüedades e información que requiere confirmación.</p></article>
   <article><span class="tile-icon">03</span><h3>Consulta técnica</h3><p>Consultá GuiaLab en otra pestaña mientras resolvés el pedido.</p></article>
  </div>
+ <section class="form-card" style="margin-top:28px;max-width:620px">
+  <h3>Consultar calificación</h3><p class="muted">Pegá el código individual de seguimiento que recibiste al entregar tu actividad.</p>
+  <form id="home-feedback-form" class="two-col"><label>Código de seguimiento<input id="home-feedback-code" maxlength="10" minlength="10" placeholder="Ej. A1B2C3D4E5" autocomplete="off" required></label><div style="display:flex;align-items:end"><button class="btn primary" type="submit">Consultar calificación</button></div></form><div id="home-feedback-result" aria-live="polite"></div>
+ </section>
  <div class="notice">Pedidos anonimizados o ficticios para uso didáctico.</div>
 </section>
 
@@ -41,7 +45,7 @@
 
 
 <section id="view-generador" class="view">
- <div class="page-title"><div><p class="eyebrow">GENERACIÓN DE ACTIVIDADES</p><h1>Generador de pedidos</h1><p>Creá pedidos simulados con determinaciones aleatorias y compartilos mediante un enlace y token individual.</p></div><span class="pill">Docente</span></div>
+ <div class="page-title"><div><p class="eyebrow">GENERACIÓN DE ACTIVIDADES</p><h1>Generador de pedidos</h1><p>Creá un pedido compartido o un enlace de comisión que asigne un pedido aleatorio distinto a cada alumno.</p></div><span class="pill">Docente</span></div>
  <div id="generator-login-note" class="login-card">Ingresá desde <b>Gestión educativa</b> con tu cuenta docente autorizada para utilizar el generador.</div>
  <div id="generator-workspace" hidden>
   <div class="admin-layout">
@@ -54,11 +58,21 @@
      <label>Dificultad<select id="generated-difficulty"><option>Inicial</option><option selected>Intermedio</option><option>Avanzado</option></select></label>
     </div>
     <label>Vencimiento del enlace (opcional)<input id="generated-expiry" type="datetime-local"></label>
-    <button class="btn primary full" type="submit" id="generate-order-button">Generar pedido y enlace</button>
+    <button class="btn primary full" type="submit" id="generate-order-button">Generar pedido y enlace compartido</button>
     <p id="generated-order-message" class="message" aria-live="polite"></p>
     <div id="generated-link-result" class="form-card" hidden></div>
    </form>
-   <aside class="form-card"><div class="admin-toolbar"><div><h3>Pedidos generados</h3><p class="muted">Enlaces, tokens y entregas de tus actividades.</p></div><button class="btn secondary" type="button" id="reload-generated-orders">Actualizar</button></div><div id="generated-orders-list" class="admin-list">Cargando…</div></aside>
+   <form id="generated-session-form" class="form-card">
+    <h3>Nuevo enlace con pedido aleatorio por alumno</h3>
+    <p class="muted">Compartís un solo enlace con toda la comisión. Cada alumno ingresa su nombre y recibe un pedido diferente. Si vuelve a entrar desde el mismo navegador, recupera su pedido.</p>
+    <label>Título de la actividad<input id="session-title" maxlength="120" placeholder="Ej. Evaluación individual de preanalítica"></label>
+    <label>Consigna para el alumno<textarea id="session-instructions" rows="3">Identificá las determinaciones solicitadas y completá área, muestra, tubo/aditivo y condiciones preanalíticas.</textarea></label>
+    <div class="two-col"><label>Determinaciones por alumno<select id="session-count"><option>2</option><option>3</option><option selected>5</option><option>8</option><option>10</option><option>15</option><option>20</option><option>30</option><option>40</option></select></label><label>Dificultad<select id="session-difficulty"><option>Inicial</option><option selected>Intermedio</option><option>Avanzado</option></select></label></div>
+    <label>Vencimiento del enlace (opcional)<input id="session-expiry" type="datetime-local"></label>
+    <button class="btn primary full" type="submit" id="generate-session-button">Crear enlace de pedidos individuales</button>
+    <p id="generated-session-message" class="message" aria-live="polite"></p><div id="generated-session-result" class="form-card" hidden></div>
+   </form>
+   <aside class="form-card"><div class="admin-toolbar"><div><h3>Actividades por comisión</h3><p class="muted">Enlaces compartidos y estado de las sesiones.</p></div><button class="btn secondary" type="button" id="reload-generated-orders">Actualizar</button></div><div id="random-sessions-list" class="admin-list"></div><hr><h3>Registro general de calificaciones</h3><p class="muted">Exportá las notas de todos los pedidos generados, compartidos e individuales.</p><button type="button" class="btn primary full" id="export-all-generated-grades">Descargar todas las calificaciones (CSV)</button><hr><h3>Pedidos generados</h3><p class="muted">Pedidos compartidos e individuales, con sus entregas.</p><div id="generated-orders-list" class="admin-list">Cargando…</div></aside>
   </div>
  </div>
 </section>
@@ -66,6 +80,15 @@
  <button class="back" data-go="inicio">← Volver al inicio</button>
  <div class="page-title"><div><p class="eyebrow">ACTIVIDAD INDIVIDUAL</p><h1 id="generated-student-title">Pedido simulado</h1><p id="generated-student-instructions"></p></div><span class="pill" id="generated-student-meta">Cargando pedido…</span></div>
  <div id="generated-student-content" class="form-card">Cargando actividad…</div>
+ <section id="generated-feedback-lookup" class="form-card" style="margin-top:18px">
+  <h3>Consultar mi corrección</h3>
+  <p class="muted">Ingresá el código corto que recibiste al entregar la actividad.</p>
+  <form id="generated-feedback-form" class="two-col">
+   <label>Código de seguimiento<input id="generated-feedback-code" maxlength="10" minlength="10" placeholder="Ej. A1B2C3D4E5" autocomplete="off" required></label>
+   <div style="display:flex;align-items:end"><button class="btn primary" type="submit">Consultar devolución</button></div>
+  </form>
+  <div id="generated-feedback-result" aria-live="polite"></div>
+ </section>
 </section>
 
 <section id="view-practica" class="view">
@@ -202,7 +225,7 @@
   <b>Posadas, Misiones | 2026</b>
  </div>
  <div class="footer-links"><a href="https://guialab.net.ar/" target="_blank" rel="noopener">GuiaLab</a><span aria-hidden="true">·</span><span>Una herramienta educativa del ecosistema Espacio Guía</span></div>
- <div class="footer-version">GuiaLab Pedidos · Versión 1.9.0</div>
+ <div class="footer-version">GuiaLab Pedidos · Versión 1.9.1.0</div>
 </footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
