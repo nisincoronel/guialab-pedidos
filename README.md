@@ -74,3 +74,7 @@ No pegues el Access Token ni el secreto de Webhook en `config.js`, GitHub ni en 
 - `migration_1_6.sql`: migración aditiva del sistema de acceso y créditos.
 - `config.js`: configuración pública existente de Supabase; conservar.
 - Los demás archivos web reemplazan la versión 1.5.0 beta.
+
+## Base de determinaciones
+
+El repositorio incluye `determinaciones.json`, una copia de la base de determinaciones aportada para el proyecto. En esta entrega queda disponible como archivo de datos para consulta e integración. **La interfaz actual de GuiaLab Pedidos todavía no carga este JSON automáticamente**: los casos y sus respuestas esperadas siguen gestionándose desde Gestión educativa. No considerar el archivo JSON como una fuente clínica validada; revisar muestra, tubo, ayuno y condiciones según el método y el procedimiento del laboratorio antes de usar esos datos en actividades.
