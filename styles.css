@@ -67,19 +67,24 @@
 /* Sistema de créditos 1.6.0 */
 .credit-panel{margin:18px 0}.credit-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}.credit-summary>div{background:#eef7ed;border:1px solid #d8ead7;border-radius:13px;padding:16px}.credit-summary small{display:block;color:var(--muted);font-size:11px}.credit-summary strong{display:block;font-size:30px;color:var(--deep);margin-top:5px}.credit-buy-note{padding:14px;border:1px dashed #cbdcc9;border-radius:12px;background:#fbfdf9;font-size:12px}.credit-buy-note p{margin:6px 0 0;color:var(--muted);line-height:1.5}.credit-history-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;font-size:12px}.credit-history-row small{display:block;color:var(--muted)}.credit-positive{color:#16833f;font-weight:850}.credit-negative{color:#a33d2e;font-weight:850}@media(max-width:600px){.credit-summary{grid-template-columns:1fr}}
 
-/* Catálogo local de determinaciones 1.7.0 */
-.determination-catalog{margin:16px 0;padding:16px;border:1px solid #d8e8d8;border-radius:14px;background:#f8fcf6}
-.catalog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
-.catalog-heading h3{margin:0 0 5px;font-size:14px;color:var(--deep)}
-.catalog-heading p{margin:0;color:var(--muted);font-size:11px;line-height:1.5}
-.catalog-count{flex:none;padding:5px 8px;border-radius:99px;background:#e7f3e4;color:var(--deep);font-size:9px;font-weight:800}
-#catalog-search{width:100%;padding:12px;border:1px solid #cbdcc9;border-radius:10px;background:#fff;color:var(--dark);font:inherit;font-size:12px}
-.catalog-results{display:grid;gap:8px;margin-top:10px}
-.catalog-result{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px;border:1px solid var(--line);border-radius:10px;background:#fff}
-.catalog-result>div{min-width:0}.catalog-result b{display:block;font-size:12px;color:var(--deep)}
-.catalog-result small{display:block;margin-top:3px;color:var(--muted);font-size:10px;line-height:1.45}
-.catalog-result .btn{padding:8px 11px;min-height:34px;font-size:10px;white-space:nowrap}
-.catalog-detail{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;color:#526b5a;font-size:10px;line-height:1.45}
-.catalog-disclaimer{margin:10px 0 0;color:#6c7e70;font-size:10px;line-height:1.5}
-.catalog-error{padding:10px;border-radius:9px;background:#fff3ef;color:#963d2c;font-size:11px}
-@media(max-width:520px){.catalog-result{grid-template-columns:1fr}.catalog-result .btn{justify-self:start}.catalog-heading{flex-direction:column}}
+/* Generador y pedidos simulados 1.8.0 */
+.generated-paper{margin:18px 0;padding:22px;border:1px solid #d6d6c8;border-radius:8px;background:#fffef8;box-shadow:0 4px 14px #163a1a12;color:#25352b}
+.generated-paper h3{text-align:center;letter-spacing:.12em}.generated-paper p{font-size:12px;border-bottom:1px solid #ddd;padding-bottom:10px}
+.generated-line{padding:9px 4px;border-bottom:1px dashed #d7d7cc;font-size:14px}
+.generated-answer{margin:16px 0;padding:14px;border:1px solid var(--line);border-radius:12px}
+.generated-answer legend{padding:0 6px;font-weight:800;color:var(--deep);font-size:13px}
+.generated-answer .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.generated-answer label{display:block;margin:8px 0;font-size:12px}
+.generated-answer input,.generated-answer textarea{width:100%;margin-top:5px}
+#generated-link-result input{width:100%;margin:6px 0 12px;padding:10px;border:1px solid var(--line);border-radius:8px}
+#view-generador .admin-layout{align-items:start}
+@media(max-width:600px){.generated-answer .two-col{grid-template-columns:1fr}}
+
+.inline-catalog{margin:16px 0;padding:14px;border:1px solid #d8e8d8;border-radius:12px;background:#f8fcf6}
+.inline-catalog h3{margin:0 0 5px;font-size:14px;color:var(--deep)}
+.inline-catalog p{margin:0 0 10px;font-size:11px;color:var(--muted)}
+#practice-catalog-search{width:100%;padding:11px;border:1px solid #cbdcc9;border-radius:9px;background:white}
+.catalog-results{display:grid;gap:7px;margin-top:9px}
+.catalog-hit{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fff}
+.catalog-hit b{display:block;font-size:12px}.catalog-hit small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.catalog-hit .btn{padding:7px 10px;font-size:10px;white-space:nowrap}

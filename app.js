@@ -3,70 +3,11 @@ const cfg=window.GLP_CONFIG||{};
 const configured=cfg.SUPABASE_URL&&cfg.SUPABASE_ANON_KEY&&!cfg.SUPABASE_URL.includes("TU-PROYECTO");
 let sb=null,admin=false,currentCase=null,currentExam=null,examCases=[],practiceAccess=null;
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
-function go(v){$$(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v));$$(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));window.scrollTo({top:0,behavior:"smooth"});if(v==="biblioteca")loadCases();if(v==="docente")refreshAdmin();if(v==="cuenta")refreshAccount();}
+function go(v){$$(".view").forEach(x=>x.classList.toggle("active",x.id==="view-"+v));$$(".nav").forEach(x=>x.classList.toggle("active",x.dataset.view===v));window.scrollTo({top:0,behavior:"smooth"});if(v==="biblioteca")loadCases();if(v==="docente")refreshAdmin();if(v==="generador")refreshAdmin();if(v==="cuenta")refreshAccount();}
 $$(".nav").forEach(b=>b.addEventListener("click",()=>go(b.dataset.view)));
 $$("[data-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
 function msg(id,t){$(id).textContent=t||""}
 function escapeHTML(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-
-// Catálogo local de determinaciones: se carga desde determinaciones.json.
-let determinationCatalog=[];
-let determinationCatalogReady=false;
-const catalogText=r=>[r["Determinación"],r["Sinónimos"],r["Grupo"],r["Sector"],r["NBU"]].filter(Boolean).join(" ");
-function catalogMatch(value){
- const key=norm(value).trim(); if(!key)return null;
- return determinationCatalog.find(r=>{
-  const names=[r["Determinación"],...(String(r["Sinónimos"]||"").split(/[;,|]/).map(x=>x.trim()))];
-  return names.some(n=>norm(n)===key);
- })||null;
-}
-function catalogPrefill(r){
- return {test:r["Determinación"]||"",area:r["Sector"]||r["Grupo"]||"",sample:r["Muestra"]||"",tube:[r["Tubo"],r["Aditivo"]].filter(Boolean).join(" · ")};
-}
-function catalogDetails(r){
- return [["Ayuno / preparación",r["Ayuno"]],["Toma",r["Toma"]],["Procesamiento",r["Procesamiento"]],["Condiciones especiales",r["Condiciones especiales"]],["Observaciones",r["Observaciones"]],["Código NBU",r["NBU"]]].filter(x=>x[1]&&String(x[1]).trim());
-}
-function renderCatalogResults(){
- const host=$("#catalog-results"),input=$("#catalog-search"); if(!host||!input)return;
- if(!determinationCatalogReady){host.innerHTML='<p class="muted">Cargando catálogo de determinaciones…</p>';return}
- const term=norm(input.value).trim();
- if(term.length<2){host.innerHTML=`<p class="muted">Catálogo disponible: ${determinationCatalog.length.toLocaleString("es-AR")} determinaciones. Escribí al menos 2 caracteres para buscar.</p>`;return}
- const matches=determinationCatalog.filter(r=>norm(catalogText(r)).includes(term)).slice(0,10);
- if(!matches.length){host.innerHTML='<p class="muted">No se encontraron coincidencias. Probá con otra denominación o abreviatura.</p>';return}
- host.innerHTML=matches.map(r=>{
-  const idx=determinationCatalog.indexOf(r);
-  const details=catalogDetails(r).slice(0,4).map(([k,v])=>`<span><b>${escapeHTML(k)}:</b> ${escapeHTML(v)}</span>`).join("");
-  return `<article class="catalog-result"><div><b>${escapeHTML(r["Determinación"]||"Sin denominación")}</b><small>${escapeHTML(r["Grupo"]||r["Sector"]||"Área no especificada")} · ${escapeHTML(r["Muestra"]||"Muestra no especificada")} · ${escapeHTML(r["Tubo"]||"Tubo no especificado")}</small><div class="catalog-detail">${details}</div></div><button type="button" class="btn secondary" data-catalog-add="${idx}">Agregar</button></article>`;
- }).join("");
- host.querySelectorAll("[data-catalog-add]").forEach(btn=>btn.addEventListener("click",()=>{
-  const r=determinationCatalog[Number(btn.dataset.catalogAdd)]; if(!r)return;
-  addDeterminationRow(catalogPrefill(r)); btn.textContent="Agregada"; btn.disabled=true;
- }));
-}
-async function loadDeterminationCatalog(){
- const host=$("#catalog-results");
- try{
-  const response=await fetch("./determinaciones.json",{cache:"no-cache"});
-  if(!response.ok)throw new Error(`HTTP ${response.status}`);
-  const json=await response.json();
-  if(!Array.isArray(json))throw new Error("El archivo no contiene una lista válida");
-  determinationCatalog=json.filter(r=>r&&r["Determinación"]); determinationCatalogReady=true;
-  const datalist=$("#determination-options");
-  if(datalist){
-   const options=new Set();
-   determinationCatalog.forEach(r=>{
-    options.add(r["Determinación"]);
-    String(r["Sinónimos"]||"").split(/[;,|]/).map(x=>x.trim()).filter(Boolean).forEach(x=>options.add(x));
-   });
-   datalist.innerHTML=[...options].map(x=>`<option value="${escapeHTML(x)}"></option>`).join("");
-  }
-  renderCatalogResults();
- }catch(error){
-  console.error("No se pudo cargar determinaciones.json:",error);
-  if(host)host.innerHTML='<p class="catalog-error">No se pudo cargar el catálogo local. Verificá que determinaciones.json esté publicado junto a index.html.</p>';
- }
-}
-
 if(configured&&window.supabase)sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
 else {msg("#login-message","Falta configurar config.js con la URL y la clave pública (anon/publishable) de Supabase.");$("#case-grid").innerHTML='<div class="empty">La biblioteca se activará cuando se configure Supabase.</div>';}
 function requireBackend(){if(!sb){alert("Primero configurá Supabase siguiendo CONFIGURACION_SUPABASE.md.");return false}return true}
@@ -103,12 +44,7 @@ function addDeterminationRow(prefill={}){
  <button type="button" class="remove-row" aria-label="Quitar determinación" title="Quitar fila">×</button>`;
  host.appendChild(row);
  row.querySelector(".remove-row").addEventListener("click",()=>{row.remove();renumberRows()});
- row.querySelector(".row-test").addEventListener("change",()=>{
-  const found=catalogMatch(row.querySelector(".row-test").value);
-  if(!found)return;
-  const values=catalogPrefill(found);
-  ["area","sample","tube"].forEach(key=>{const field=row.querySelector(".row-"+key);if(!field.value.trim())field.value=values[key]});
- });
+ row.querySelector(".row-test").setAttribute("list","determination-options");
  
 }
 function renumberRows(){[...$("#determination-rows").children].forEach((r,i)=>r.querySelector(".row-number").textContent=i+1)}
@@ -134,8 +70,6 @@ function initWorksheet(){
  $("#evaluation-result").hidden=true;
 }
 $("#add-determination").addEventListener("click",()=>addDeterminationRow());
-$("#catalog-search")?.addEventListener("input",renderCatalogResults);
-loadDeterminationCatalog();
 
 async function ensurePracticeIdentity(){
  const {data:{session}}=await sb.auth.getSession();
@@ -468,3 +402,105 @@ $('#close-submissions').addEventListener('click',()=>$('#submission-panel').hidd
 
 if(sb)sb.auth.onAuthStateChange(()=>{refreshAdmin();refreshAccount()});
 refreshAdmin();refreshAccount();
+
+
+// --- Generador de pedidos aleatorios 1.8.0 ---
+let determinationCatalog=[];
+async function loadDeterminationCatalog(){
+ try{const r=await fetch('./determinaciones.json');if(!r.ok)throw new Error('HTTP '+r.status);const rows=await r.json();determinationCatalog=Array.isArray(rows)?rows.filter(x=>x&&x["Determinación"]):[];renderPracticeCatalog();}
+ catch(e){console.error('No se pudo cargar el catálogo',e);determinationCatalog=[];}
+}
+
+function renderPracticeCatalog(){
+ const host=$('#practice-catalog-results'),input=$('#practice-catalog-search');if(!host||!input)return;
+ const term=norm(input.value).trim();
+ if(term.length<2){host.innerHTML=`<small>Catálogo disponible: ${determinationCatalog.length.toLocaleString('es-AR')} determinaciones. Escribí al menos dos caracteres.</small>`;return}
+ const hits=determinationCatalog.filter(r=>norm([r['Determinación'],r['Sinónimos'],r['Grupo'],r['Sector'],r['NBU']].join(' ')).includes(term)).slice(0,8);
+ if(!hits.length){host.innerHTML='<small>No se encontraron coincidencias.</small>';return}
+ host.innerHTML=hits.map((r,i)=>`<div class="catalog-hit"><span><b>${escapeHTML(r['Determinación'])}</b><small>${escapeHTML(r['Grupo']||r['Sector']||'')} · ${escapeHTML(r['Muestra']||'Muestra no especificada')} · ${escapeHTML(r['Tubo']||'Tubo no especificado')}</small></span><button type="button" class="btn secondary" data-practice-add="${i}">Agregar</button></div>`).join('');
+ host.querySelectorAll('[data-practice-add]').forEach((b,i)=>b.addEventListener('click',()=>{const r=hits[i];addDeterminationRow({test:r['Determinación'],area:r['Sector']||r['Grupo'],sample:r['Muestra'],tube:[r['Tubo'],r['Aditivo']].filter(Boolean).join(' · ')});}));
+}
+$('#practice-catalog-search').addEventListener('input',renderPracticeCatalog);
+
+function randomUniqueRows(count){
+ const pool=[...determinationCatalog];
+ for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+ return pool.slice(0,count);
+}
+function orderDisplayRow(r,i){
+ return {numero:i+1,determinacion:r["Determinación"]||"",grupo:r["Grupo"]||"",sector:r["Sector"]||"",muestra:r["Muestra"]||"",tubo:r["Tubo"]||"",aditivo:r["Aditivo"]||""};
+}
+async function loadGeneratedOrders(){
+ if(!admin||!sb)return;
+ const host=$('#generated-orders-list');host.textContent='Cargando…';
+ const {data,error}=await sb.rpc('glp_admin_list_generated_orders');
+ if(error){host.textContent='No se pudieron cargar los pedidos. Aplicá migration_1_7.sql en Supabase. '+error.message;return}
+ if(!data?.length){host.innerHTML='<div class="empty">Todavía no generaste pedidos.</div>';return}
+ host.innerHTML=data.map(o=>{
+  const url=`${location.origin}${location.pathname}?pedido=${encodeURIComponent(o.token)}`;
+  return `<article class="admin-item"><b>${escapeHTML(o.title)}</b><small>${escapeHTML(o.difficulty)} · ${o.item_count} determinaciones · ${o.submission_count} entregas · ${o.status==='active'?'Activo':'Cerrado'}</small><small>Token: <code>${escapeHTML(o.token)}</code></small><div class="actions"><button class="btn secondary" data-copy-generated="${escapeHTML(url)}">Copiar enlace</button><button class="btn secondary" data-copy-token="${escapeHTML(o.token)}">Copiar token</button><button class="btn secondary" data-toggle-generated="${o.id}" data-next="${o.status==='active'?'closed':'active'}">${o.status==='active'?'Cerrar':'Reabrir'}</button></div></article>`;
+ }).join('');
+ $$('[data-copy-generated]').forEach(b=>b.addEventListener('click',()=>navigator.clipboard.writeText(b.dataset.copyGenerated).then(()=>alert('Enlace copiado')).catch(()=>prompt('Copiá el enlace',b.dataset.copyGenerated))));
+ $$('[data-copy-token]').forEach(b=>b.addEventListener('click',()=>navigator.clipboard.writeText(b.dataset.copyToken).then(()=>alert('Token copiado')).catch(()=>prompt('Copiá el token',b.dataset.copyToken))));
+ $$('[data-toggle-generated]').forEach(b=>b.addEventListener('click',async()=>{const {error}=await sb.rpc('glp_admin_set_generated_order_status',{p_id:b.dataset.toggleGenerated,p_status:b.dataset.next});if(error)alert(error.message);else loadGeneratedOrders()}));
+}
+$('#generated-order-form').addEventListener('submit',async e=>{
+ e.preventDefault();if(!sb||!admin){msg('#generated-order-message','Necesitás iniciar sesión como docente.');return}
+ if(!determinationCatalog.length){msg('#generated-order-message','No se pudo cargar determinaciones.json. Verificá que esté en la raíz del sitio.');return}
+ const count=Number($('#generated-count').value),rows=randomUniqueRows(count);
+ if(rows.length!==count){msg('#generated-order-message','La base no tiene suficientes determinaciones.');return}
+ const orderData=rows.map(orderDisplayRow);
+ const answerKey=rows.map(r=>({
+  determinacion:r["Determinación"]||"",area:r["Sector"]||r["Grupo"]||"",
+  muestra:r["Muestra"]||"",tubo:r["Tubo"]||"",aditivo:r["Aditivo"]||"",
+  ayuno:r["Ayuno"]||"",toma:r["Toma"]||"",procesamiento:r["Procesamiento"]||"",
+  condiciones:r["Condiciones especiales"]||"",observaciones:r["Observaciones"]||""
+ }));
+ const expiry=$('#generated-expiry').value?new Date($('#generated-expiry').value).toISOString():null;
+ const btn=$('#generate-order-button');btn.disabled=true;btn.textContent='Generando…';msg('#generated-order-message','');
+ const {data,error}=await sb.rpc('glp_create_generated_order',{
+  p_title:$('#generated-title').value.trim()||'Pedido simulado',
+  p_instructions:$('#generated-instructions').value.trim(),
+  p_difficulty:$('#generated-difficulty').value,
+  p_order_data:orderData,p_answer_key:answerKey,p_expires_at:expiry
+ });
+ btn.disabled=false;btn.textContent='Generar pedido y enlace';
+ if(error){msg('#generated-order-message','No se pudo generar: '+error.message+' · Si la función no existe, ejecutá migration_1_7.sql en Supabase.');return}
+ const url=`${location.origin}${location.pathname}?pedido=${encodeURIComponent(data.token)}`;
+ $('#generated-link-result').hidden=false;
+ $('#generated-link-result').innerHTML=`<h3>Pedido generado correctamente</h3><p><b>Enlace para el alumno</b></p><input readonly value="${escapeHTML(url)}" id="new-generated-url"><p><b>Token de acceso</b></p><input readonly value="${escapeHTML(data.token)}" id="new-generated-token"><div class="actions"><button class="btn primary" type="button" id="copy-new-link">Copiar enlace</button><button class="btn secondary" type="button" id="copy-new-token">Copiar token</button><a class="btn secondary" target="_blank" rel="noopener" href="${escapeHTML(url)}">Abrir como alumno</a></div><p class="muted">${data.item_count} determinaciones · ${escapeHTML($('#generated-difficulty').value)}</p>`;
+ $('#copy-new-link').addEventListener('click',()=>navigator.clipboard.writeText(url).then(()=>msg('#generated-order-message','Enlace copiado.')));
+ $('#copy-new-token').addEventListener('click',()=>navigator.clipboard.writeText(data.token).then(()=>msg('#generated-order-message','Token copiado.')));
+ msg('#generated-order-message','Pedido creado. Compartí el enlace o el token con tus alumnos.');
+ await loadGeneratedOrders();
+});
+$('#reload-generated-orders').addEventListener('click',loadGeneratedOrders);
+async function openGeneratedOrder(token){
+ if(!sb){$('#generated-student-content').textContent='No se pudo conectar con el servidor.';return}
+ go('pedido-generado');
+ const {data,error}=await sb.rpc('glp_get_generated_order',{p_token:token});
+ if(error){$('#generated-student-content').textContent='No se pudo abrir el pedido: '+error.message;$('#generated-student-meta').textContent='Enlace no disponible';return}
+ $('#generated-student-title').textContent=data.title;
+ $('#generated-student-instructions').textContent=data.instructions||'Completá la resolución de este pedido simulado.';
+ $('#generated-student-meta').textContent=`${data.item_count} determinaciones · ${data.difficulty}`;
+ const rows=data.order_data||[];
+ $('#generated-student-content').innerHTML=`<form id="generated-student-form"><label>Tu nombre (opcional)<input id="generated-student-name" maxlength="100" placeholder="Nombre y apellido"></label><div class="notice">Pedido simulado para entrenamiento. No representa una orden médica real.</div><div class="generated-paper"><h3>ORDEN DE LABORATORIO</h3><p>Paciente: ____________________　Fecha: ____ / ____ / ______</p>${rows.map(r=>`<div class="generated-line"><b>${r.numero}.</b> ${escapeHTML(r.determinacion)}</div>`).join('')}</div><h3>Resolución del alumno</h3>${rows.map((r,i)=>`<fieldset class="generated-answer"><legend>Determinación ${i+1}: ${escapeHTML(r.determinacion)}</legend><div class="two-col"><label>Área<input class="gs-area" data-i="${i}" placeholder="Área del laboratorio"></label><label>Muestra<input class="gs-sample" data-i="${i}" placeholder="Muestra biológica"></label><label>Tubo / aditivo<input class="gs-tube" data-i="${i}" placeholder="Tubo y aditivo"></label><label>Preparación / ayuno<input class="gs-fasting" data-i="${i}" placeholder="Indicaciones al paciente"></label></div><label>Observaciones / dudas<textarea class="gs-notes" data-i="${i}" rows="2" placeholder="Condiciones preanalíticas, inconsistencias o consultas"></textarea></label></fieldset>`).join('')}<button class="btn primary full" type="submit" id="submit-generated-response">Enviar resolución</button><p id="generated-submit-message" class="message"></p></form>`;
+ $('#generated-student-form').addEventListener('submit',async e=>{
+  e.preventDefault();const response=rows.map((r,i)=>({determinacion:r.determinacion,area:$(`.gs-area[data-i="${i}"]`).value.trim(),muestra:$(`.gs-sample[data-i="${i}"]`).value.trim(),tubo:$(`.gs-tube[data-i="${i}"]`).value.trim(),preparacion:$(`.gs-fasting[data-i="${i}"]`).value.trim(),observaciones:$(`.gs-notes[data-i="${i}"]`).value.trim()}));
+  const b=$('#submit-generated-response');b.disabled=true;b.textContent='Enviando…';
+  const {data:result,error:submitError}=await sb.rpc('glp_submit_generated_order',{p_token:token,p_student_name:$('#generated-student-name').value.trim()||'Alumno',p_response:response});
+  b.disabled=false;b.textContent='Enviar resolución';
+  if(submitError){msg('#generated-submit-message','No se pudo enviar: '+submitError.message);return}
+  $('#generated-student-content').innerHTML=`<div class="result ${result.score>=70?'':'bad'}"><h3>Entrega registrada</h3><p>Reconocimiento de determinaciones: <b>${result.score}%</b></p><p>Coincidencias: ${result.matched?.length?result.matched.map(escapeHTML).join(', '):'Ninguna'}</p><p>Para revisar: ${result.missing?.length?result.missing.map(escapeHTML).join(', '):'Ninguna'}</p><p>${escapeHTML(result.message)}</p><p>La devolución final y la evaluación de los campos técnicos quedan sujetas a revisión docente.</p></div>`;
+ });
+}
+async function initGeneratedOrderMode(){
+ await loadDeterminationCatalog();
+ const token=new URLSearchParams(location.search).get('pedido');
+ if(token)await openGeneratedOrder(token);
+}
+$('#generator-login-note').hidden=admin;
+$('#generator-workspace').hidden=!admin;
+const oldRefreshAdmin=refreshAdmin;
+refreshAdmin=async function(){await oldRefreshAdmin();$('#generator-login-note').hidden=admin;$('#generator-workspace').hidden=!admin;if(admin)loadGeneratedOrders()};
+initGeneratedOrderMode();

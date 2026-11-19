@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#07512f"><meta name="description" content="Plataforma educativa para practicar lectura de pedidos de laboratorio.">
-<title>GuiaLab Pedidos 1.7.0 | Formación</title>
+<title>GuiaLab Pedidos 1.8.0 | Formación</title>
 <link rel="icon" href="./logo-mark.png"><link rel="manifest" href="./manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,8 +13,8 @@
 <div class="shell">
 <header class="topbar">
  <a class="brand" href="#inicio" aria-label="GuiaLab Formación y Capacitación Continua"><img src="./logo-formacion.png" alt="GuiaLab Formación y Capacitación Continua"></a>
- <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><a class="nav external-nav" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a><button class="nav" data-view="cuenta">Mi cuenta</button><button class="nav" data-view="docente">Gestión educativa</button></nav>
- <span class="version">VERSIÓN 1.7.0 BETA</span>
+ <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><a class="nav external-nav" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a><button class="nav" data-view="cuenta">Mi cuenta</button><button class="nav" data-view="docente">Gestión educativa</button><button class="nav" data-view="generador">Generador</button></nav>
+ <span class="version">VERSIÓN 1.8.0 BETA</span>
 </header>
 <main>
 <section id="view-inicio" class="view active">
@@ -39,6 +39,35 @@
  <div id="case-grid" class="case-grid"><p class="muted">Conectando con la biblioteca…</p></div>
 </section>
 
+
+<section id="view-generador" class="view">
+ <div class="page-title"><div><p class="eyebrow">GENERACIÓN DE ACTIVIDADES</p><h1>Generador de pedidos</h1><p>Creá pedidos simulados con determinaciones aleatorias y compartilos mediante un enlace y token individual.</p></div><span class="pill">Docente</span></div>
+ <div id="generator-login-note" class="login-card">Ingresá desde <b>Gestión educativa</b> con tu cuenta docente autorizada para utilizar el generador.</div>
+ <div id="generator-workspace" hidden>
+  <div class="admin-layout">
+   <form id="generated-order-form" class="form-card">
+    <h3>Nuevo pedido aleatorio</h3>
+    <label>Título de la actividad<input id="generated-title" maxlength="120" placeholder="Ej. Práctica de lectura preanalítica"></label>
+    <label>Consigna para el alumno<textarea id="generated-instructions" rows="3">Identificá las determinaciones solicitadas y completá área, muestra, tubo/aditivo y condiciones preanalíticas.</textarea></label>
+    <div class="two-col">
+     <label>Cantidad de determinaciones<select id="generated-count"><option>2</option><option>3</option><option selected>5</option><option>8</option><option>10</option><option>15</option><option>20</option><option>30</option><option>40</option></select></label>
+     <label>Dificultad<select id="generated-difficulty"><option>Inicial</option><option selected>Intermedio</option><option>Avanzado</option></select></label>
+    </div>
+    <label>Vencimiento del enlace (opcional)<input id="generated-expiry" type="datetime-local"></label>
+    <button class="btn primary full" type="submit" id="generate-order-button">Generar pedido y enlace</button>
+    <p id="generated-order-message" class="message" aria-live="polite"></p>
+    <div id="generated-link-result" class="form-card" hidden></div>
+   </form>
+   <aside class="form-card"><div class="admin-toolbar"><div><h3>Pedidos generados</h3><p class="muted">Enlaces, tokens y entregas de tus actividades.</p></div><button class="btn secondary" type="button" id="reload-generated-orders">Actualizar</button></div><div id="generated-orders-list" class="admin-list">Cargando…</div></aside>
+  </div>
+ </div>
+</section>
+<section id="view-pedido-generado" class="view">
+ <button class="back" data-go="inicio">← Volver al inicio</button>
+ <div class="page-title"><div><p class="eyebrow">ACTIVIDAD INDIVIDUAL</p><h1 id="generated-student-title">Pedido simulado</h1><p id="generated-student-instructions"></p></div><span class="pill" id="generated-student-meta">Cargando pedido…</span></div>
+ <div id="generated-student-content" class="form-card">Cargando actividad…</div>
+</section>
+
 <section id="view-practica" class="view">
  <button class="back" data-go="biblioteca">← Volver a la biblioteca</button>
  <div class="page-title"><div><p class="eyebrow">EJERCICIO FOTOGRÁFICO</p><h1 id="practice-title">Caso</h1><p id="practice-meta"></p></div><span class="pill">Práctica</span></div>
@@ -47,15 +76,9 @@
   <article class="answer-panel interactive-answer">
    <h2>Resolución del pedido</h2><p id="practice-prompt" class="muted"></p>
    <div class="exercise-intro"><b>Completá una fila por cada determinación.</b><span>Podés consultar GuiaLab en otra pestaña durante todo el ejercicio. La información de muestra y recipiente debe verificarse según el método y el procedimiento del laboratorio.</span><a class="btn secondary" href="https://guialab.net.ar/" target="_blank" rel="noopener">Abrir GuiaLab para consultar ↗</a></div>
-       <section class="determination-catalog" aria-label="Catálogo de determinaciones">
-     <div class="catalog-heading"><div><h3>Consultar catálogo de determinaciones</h3><p>Buscá por nombre, abreviatura, área o código NBU y agregá el resultado a tu resolución.</p></div><span class="catalog-count">Base local</span></div>
-     <input id="catalog-search" type="search" autocomplete="off" placeholder="Ej. hemograma, TP, KPTT, glucemia…">
-     <div id="catalog-results" class="catalog-results"><p class="muted">Cargando catálogo de determinaciones…</p></div>
-     <datalist id="determination-options"></datalist>
-     <p class="catalog-disclaimer">Referencia educativa. Confirmá siempre muestra, tubo, ayuno y condiciones con el método y el procedimiento vigente del laboratorio.</p>
-    </section>
-    <div class="worksheet-head"><span>Determinación</span><span>Área</span><span>Muestra</span><span>Tubo / aditivo</span></div>
-   <div id="determination-rows"></div>
+   <section class="inline-catalog"><h3>Consultar catálogo de determinaciones</h3><p>Buscá por nombre, abreviatura o sinónimo y agregá el resultado a tu resolución.</p><input id="practice-catalog-search" type="search" placeholder="Ej. hemograma, TP, KPTT, glucemia…"><div id="practice-catalog-results" class="catalog-results"><small>Catálogo cargando…</small></div></section>
+   <div class="worksheet-head"><span>Determinación</span><span>Área</span><span>Muestra</span><span>Tubo / aditivo</span></div>
+   <datalist id="determination-options"></datalist><div id="determination-rows"></div>
    <button id="add-determination" type="button" class="btn secondary full">＋ Agregar determinación</button>
    <div class="worksheet-extra">
     <h3>Requisitos preanalíticos</h3>
@@ -179,7 +202,7 @@
   <b>Posadas, Misiones | 2026</b>
  </div>
  <div class="footer-links"><a href="https://guialab.net.ar/" target="_blank" rel="noopener">GuiaLab</a><span aria-hidden="true">·</span><span>Una herramienta educativa del ecosistema Espacio Guía</span></div>
- <div class="footer-version">GuiaLab Pedidos · Versión 1.7.0 beta</div>
+ <div class="footer-version">GuiaLab Pedidos · Versión 1.8.0 beta</div>
 </footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
