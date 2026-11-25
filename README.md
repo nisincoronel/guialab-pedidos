@@ -146,3 +146,10 @@ select count(*) from public.glp_determination_catalog where enabled;
 ```
 
 La cantidad esperada al construir esta versión es 187 determinaciones habilitadas.
+
+
+## Selector de examen práctico (2.1.1)
+
+Se agregó `selector-examen.html`, accesible desde la navegación **Examen práctico**. Incluye 31 alumnos cargados inicialmente a partir de la nómina proporcionada por el docente (se omitieron los DNI), sorteo de extraccionista, paciente y material, registro de prácticas, deshacer, reinicio y exportación CSV. La lista puede editarse desde la propia página.
+
+Los datos del selector se guardan localmente en el navegador (`localStorage`); no se sincronizan con Supabase ni con las cuentas de alumnos. Para proyectar, abrir la sección desde la navegación y usar **Pantalla completa**.
