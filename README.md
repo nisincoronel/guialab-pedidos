@@ -153,3 +153,11 @@ La cantidad esperada al construir esta versión es 187 determinaciones habilitad
 Se agregó `selector-examen.html`, accesible desde la navegación **Examen práctico**. Incluye 31 alumnos cargados inicialmente a partir de la nómina proporcionada por el docente (se omitieron los DNI), sorteo de extraccionista, paciente y material, registro de prácticas, deshacer, reinicio y exportación CSV. La lista puede editarse desde la propia página.
 
 Los datos del selector se guardan localmente en el navegador (`localStorage`); no se sincronizan con Supabase ni con las cuentas de alumnos. Para proyectar, abrir la sección desde la navegación y usar **Pantalla completa**.
+
+
+## Versión 2.1.2
+- Se incorpora el selector de examen práctico con la primera nómina de 31 alumnos (sin DNI).
+- Para compartir una evaluación con toda la comisión, crear el enlace desde **Enlace grupal · pedido aleatorio por alumno**. El alumno ingresa su nombre y luego recibe un pedido aleatorio individual.
+- Los enlaces directos `?pedido=` abren primero una pantalla de identificación.
+- Los pedidos generados muestran una plantilla educativa con identificación de material didáctico y advertencia de no validez como pedido real.
+- No requiere migraciones SQL nuevas.

@@ -14,7 +14,7 @@
 <header class="topbar">
  <a class="brand" href="#inicio" aria-label="GuiaLab Formación y Capacitación Continua"><img src="./logo-formacion.png" alt="GuiaLab Formación y Capacitación Continua"></a>
  <nav><button class="nav active" data-view="inicio">Inicio</button><button class="nav" data-view="biblioteca">Biblioteca</button><a class="nav external-nav" href="https://guialab.net.ar/" target="_blank" rel="noopener">Consultar GuiaLab ↗</a><button class="nav" data-view="cuenta">Mi cuenta</button><button class="nav" data-view="docente">Gestión educativa</button><button class="nav" data-view="generador">Generador</button><a class="nav" href="./selector-examen.html">Examen práctico</a></nav>
- <span class="version">VERSIÓN 2.1.1</span>
+ <span class="version">VERSIÓN 2.1.2</span>
 </header>
 <main>
 <section id="view-inicio" class="view active">
@@ -50,7 +50,7 @@
  <div id="generator-workspace" hidden>
   <div class="admin-layout">
    <form id="generated-order-form" class="form-card">
-    <h3>Nuevo pedido aleatorio</h3>
+    <h3>Pedido individual específico</h3><p class="muted">Genera un enlace a este pedido concreto. Para una comisión completa, usá el generador grupal de abajo.</p>
     <label>Título de la actividad<input id="generated-title" maxlength="120" placeholder="Ej. Práctica de lectura preanalítica"></label>
     <label>Consigna para el alumno<textarea id="generated-instructions" rows="3">Identificá las determinaciones solicitadas y completá área, muestra, tubo/aditivo y condiciones preanalíticas.</textarea></label>
     <div class="two-col">
@@ -58,18 +58,18 @@
      <label>Dificultad<select id="generated-difficulty"><option>Inicial</option><option selected>Intermedio</option><option>Avanzado</option></select></label>
     </div>
     <label>Vencimiento del enlace (opcional)<input id="generated-expiry" type="datetime-local"></label>
-    <button class="btn primary full" type="submit" id="generate-order-button">Generar pedido y enlace compartido</button>
+    <button class="btn primary full" type="submit" id="generate-order-button">Generar enlace a este pedido</button>
     <p id="generated-order-message" class="message" aria-live="polite"></p>
     <div id="generated-link-result" class="form-card" hidden></div>
    </form>
    <form id="generated-session-form" class="form-card">
-    <h3>Nuevo enlace con pedido aleatorio por alumno</h3>
+    <h3>Enlace grupal · pedido aleatorio por alumno</h3>
     <p class="muted">Compartís un solo enlace con toda la comisión. Cada alumno ingresa su nombre y recibe un pedido diferente. Si vuelve a entrar desde el mismo navegador, recupera su pedido.</p>
     <label>Título de la actividad<input id="session-title" maxlength="120" placeholder="Ej. Evaluación individual de preanalítica"></label>
     <label>Consigna para el alumno<textarea id="session-instructions" rows="3">Identificá las determinaciones solicitadas y completá área, muestra, tubo/aditivo y condiciones preanalíticas.</textarea></label>
     <div class="two-col"><label>Determinaciones por alumno<select id="session-count"><option>2</option><option>3</option><option selected>5</option><option>8</option><option>10</option><option>15</option><option>20</option><option>30</option><option>40</option></select></label><label>Dificultad<select id="session-difficulty"><option>Inicial</option><option selected>Intermedio</option><option>Avanzado</option></select></label></div>
     <label>Vencimiento del enlace (opcional)<input id="session-expiry" type="datetime-local"></label>
-    <button class="btn primary full" type="submit" id="generate-session-button">Crear enlace de pedidos individuales</button>
+    <button class="btn primary full" type="submit" id="generate-session-button">Crear enlace grupal aleatorio</button>
     <p id="generated-session-message" class="message" aria-live="polite"></p><div id="generated-session-result" class="form-card" hidden></div>
    </form>
    <aside class="form-card"><div class="admin-toolbar"><div><h3>Actividades por comisión</h3><p class="muted">Enlaces compartidos y estado de las sesiones.</p></div><button class="btn secondary" type="button" id="reload-generated-orders">Actualizar</button></div><div id="random-sessions-list" class="admin-list"></div><hr><h3>Registro general de calificaciones</h3><p class="muted">Consultá, filtrá e imprimí las notas de todos los pedidos generados, compartidos e individuales.</p><div class="two-col"><label>Buscar alumno o actividad<input id="academic-register-search" type="search" placeholder="Nombre, actividad o código"></label><label>Estado<select id="academic-register-status"><option value="">Todos</option><option value="pending">Pendientes</option><option value="graded">Corregidos</option></select></label></div><div class="actions"><button type="button" class="btn secondary" id="reload-academic-register">Actualizar registro</button><button type="button" class="btn primary" id="print-academic-register">Imprimir acta / Guardar PDF</button><button type="button" class="btn secondary" id="export-all-generated-grades">Descargar CSV completo</button></div><div id="academic-register-list" class="admin-list">Cargando registro…</div><hr><h3>Pedidos generados</h3><p class="muted">Pedidos compartidos e individuales, con sus entregas.</p><div id="generated-orders-list" class="admin-list">Cargando…</div></aside>
