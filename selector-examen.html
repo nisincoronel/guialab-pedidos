@@ -40,8 +40,17 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 @media(max-width:600px){.grid{grid-template-columns:1fr}.equipment{grid-column:auto}.panel{padding:16px}.result{min-height:145px}}
 @media print{header .toolbar,button,.lower{display:none!important}body{background:#fff}.panel{box-shadow:none;break-inside:avoid}.grid{grid-template-columns:1fr 1fr 1fr}main{margin:0}}
 </style>
-</head>
+<style>
+#teacherGate{position:fixed;inset:0;z-index:99999;background:#f4f7f5;display:flex;align-items:center;justify-content:center;padding:22px}
+#teacherGate .gate-card{max-width:440px;width:100%;background:#fff;border:1px solid #dce6df;border-radius:18px;padding:28px;box-shadow:0 12px 40px #173c2815;text-align:center}
+#teacherGate h1{font-size:22px;color:#124c3b;margin:0 0 10px}
+#teacherGate p{color:#64736b}
+#teacherGate a{display:inline-block;margin-top:10px;color:#176b50;font-weight:700}
+body:not(.teacher-authorized) header,body:not(.teacher-authorized) main{visibility:hidden}
+</style></head>
 <body>
+<div id="teacherGate"><div class="gate-card"><h1>Acceso exclusivo para docentes</h1><p>Iniciá sesión desde Gestión educativa con tu cuenta docente autorizada para utilizar el selector de examen práctico.</p><p id="gateStatus">Verificando permisos…</p><a href="./index.html">Volver a GuiaLab Pedidos</a></div></div>
+
 <header><div class="head"><div><div class="brand">GuiaLab Pedidos <span style="font-weight:400">| Examen práctico</span></div><div class="sub">Herramienta docente de Espacio Guía</div></div><div class="toolbar"><button class="light" id="fullscreen">⛶ Pantalla completa</button><button class="light" id="print">Imprimir pantalla</button></div></div></header>
 <main>
   <section class="panel" style="margin-bottom:16px">
@@ -99,6 +108,26 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
     </section>
   </div>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script>
+<script>
+(async function(){
+ const status=document.getElementById('gateStatus');
+ try{
+  const cfg=window.GLP_CONFIG||{};
+  const url=cfg.SUPABASE_URL;
+  const key=cfg.SUPABASE_ANON_KEY;
+  if(!url||!key||!window.supabase){status.textContent='No se pudo verificar la configuración. Volvé a Gestión educativa.';return;}
+  const client=window.supabase.createClient(url,key);
+  const {data:{session}}=await client.auth.getSession();
+  if(!session||session.user.is_anonymous){status.textContent='No hay una sesión docente activa. Ingresá primero desde Gestión educativa.';return;}
+  const {data,error}=await client.from('glp_admins').select('user_id').eq('user_id',session.user.id).maybeSingle();
+  if(error||!data){status.textContent='Tu cuenta no tiene permisos para utilizar esta herramienta.';return;}
+  document.body.classList.add('teacher-authorized');
+  document.getElementById('teacherGate').remove();
+ }catch(e){status.textContent='No se pudo validar el acceso. Volvé a Gestión educativa.';}
+})();
+</script>
 <script>
 const KEY='espacio_guia_selector_practico_v1';
 const COMMISSIONS_KEY=KEY+'_commissions';
